@@ -23,7 +23,7 @@ function AnimatedBox() {
 }
 
 function Model() {
-  const geometry = useLoader(PLYLoader, '/troll.ply');
+  const geometry = useLoader(PLYLoader, 'PointClouds/troll.ply');
   return (
     <points rotation={[-Math.PI/2, 0, Math.PI/2]}  position={[0, 5, 0]} geometry={geometry} scale={0.02}>
       <pointsMaterial

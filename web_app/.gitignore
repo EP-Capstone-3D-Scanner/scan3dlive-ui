@@ -12,6 +12,7 @@ README.md
 dist
 dist-ssr
 *.local
+public/point_clouds
 
 # Editor directories and files
 .vscode/*
@@ -23,4 +24,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-*.ply
