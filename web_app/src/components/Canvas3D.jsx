@@ -39,7 +39,7 @@ function AnimatedBox() {
 function Canvas3D(props) {
     return (
         <>
-        <div id="canvas-container">
+        <div class="h-100">
           <Canvas camera={{position:[2,2,3]}}>
             <gridHelper args = {[20]}></gridHelper>
             <OrbitControls></OrbitControls>
