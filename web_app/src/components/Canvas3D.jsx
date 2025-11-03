@@ -22,10 +22,10 @@ function AnimatedBox() {
     )
   }
   
-  function Model() {
+  function Model({position}) {
     const geometry = useLoader(PLYLoader, 'point_clouds/test1.ply');
     return (
-      <points rotation={[-Math.PI/2, 0, Math.PI/2]}  position={[0, 5, 0]} geometry={geometry} scale={2}>
+      <points rotation={[-Math.PI/2, 0, Math.PI/2]}  position={position} geometry={geometry} scale={2}>
         <pointsMaterial
           sizeAttenuation={true}
           size={0.00001}          // size of each point
@@ -35,6 +35,7 @@ function AnimatedBox() {
       </points>
     );
   }
+
 
 function Canvas3D(props) {
     return (
@@ -46,7 +47,7 @@ function Canvas3D(props) {
             <AnimatedBox></AnimatedBox>
             <ambientLight intensity={1} />
             <directionalLight position={[5,5,5]}/>
-            <Model></Model>
+            <Model position={[0,0,0]}></Model>
           </Canvas>
         </div>
         </>

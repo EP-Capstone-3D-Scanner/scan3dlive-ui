@@ -22,7 +22,7 @@
 }
 
 #Sidebar {
-  width: 50%;
+  width: 3%;
   height:100%;
 }
 
@@ -31,4 +31,20 @@
   height:90%;
   display:block;
   position:relative;
+}
+
+.sidebar-button {
+  width: 100%;
+  aspect-ratio: 1/1;
+}
+
+.sidebar-icon-button {
+  width: 100%;
+  border:none;
+  img {
+    width:100%;
+  }
+  :hover {
+    width: 95%;
+  };
 }
