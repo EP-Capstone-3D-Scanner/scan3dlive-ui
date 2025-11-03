@@ -23,9 +23,9 @@ function AnimatedBox() {
   }
   
   function Model() {
-    const geometry = useLoader(PLYLoader, 'pointclouds/troll.ply');
+    const geometry = useLoader(PLYLoader, 'point_clouds/test1.ply');
     return (
-      <points rotation={[-Math.PI/2, 0, Math.PI/2]}  position={[0, 5, 0]} geometry={geometry} scale={0.02}>
+      <points rotation={[-Math.PI/2, 0, Math.PI/2]}  position={[0, 5, 0]} geometry={geometry} scale={2}>
         <pointsMaterial
           sizeAttenuation={true}
           size={0.00001}          // size of each point
@@ -39,7 +39,7 @@ function AnimatedBox() {
 function Canvas3D(props) {
     return (
         <>
-        <div class="h-100 w-100">
+        <div id="Canvas3D" class="h-100 w-100">
           <Canvas camera={{position:[2,2,3]}}>
             <gridHelper args = {[20]}></gridHelper>
             <OrbitControls></OrbitControls>

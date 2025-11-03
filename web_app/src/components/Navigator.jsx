@@ -5,7 +5,7 @@ import Nav from 'react-bootstrap/Nav';
 
 const Navigator = () => {
     return (
-        <Navbar className = "ps-3 pe-3 pb-0 w-100 bg-dark">
+        <Navbar id = "Navigator" className = "ps-3 pe-3 pb-0 w-100 bg-dark">
             <Navbar.Brand className = "ms-0">
                 <p className="h3 fw-bold text-white">Point Cloud Viewer</p>
             </Navbar.Brand>
