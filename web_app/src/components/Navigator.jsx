@@ -7,7 +7,7 @@ const Navigator = () => {
     return (
         <Navbar id = "Navigator" className = "ps-3 pe-3 pb-0 w-100 bg-dark">
             <Navbar.Brand className = "ms-0">
-                <p className="h3 fw-bold text-white">Point Cloud Viewer</p>
+                <p class="h3 fw-bold text-white">Point Cloud Viewer</p>
             </Navbar.Brand>
             <Nav className = "ms-auto">
                 <Nav.Link className = "text-white">Settings</Nav.Link>
