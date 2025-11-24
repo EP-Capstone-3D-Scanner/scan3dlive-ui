@@ -8,12 +8,9 @@ import Sidebar from './components/Sidebar';
 function App() {
   return (
     <div id="web_app" class="vh-100">
-      <div id="web_app_header">
-        <Navigator></Navigator>
-      </div>
+      <Navigator></Navigator>
       <div id="web_app_container">
         <Canvas3D></Canvas3D>
-        <Sidebar></Sidebar>
       </div>
     </div>
   )

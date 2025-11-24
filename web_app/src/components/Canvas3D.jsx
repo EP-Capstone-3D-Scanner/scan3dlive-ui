@@ -5,7 +5,7 @@ import { useRef } from 'react'
 import { FirstPersonControls, OrbitControls, Html } from '@react-three/drei'
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js'
 
-
+/*
 function AnimatedBox() {
     const boxRef = useRef();
 
@@ -22,7 +22,9 @@ function AnimatedBox() {
       </mesh>
     )
   }
-  
+  <AnimatedBox></AnimatedBox>
+*/
+
 function Model({position, annotations, setAnnotations}) {
   const geometry = useLoader(PLYLoader, 'point_clouds/test1.ply');
   
@@ -54,7 +56,6 @@ function Canvas3D(props) {
       <Canvas camera={{position:[2,2,3]}}>
         <gridHelper args = {[20]}></gridHelper>
         <OrbitControls></OrbitControls>
-        <AnimatedBox></AnimatedBox>
         <ambientLight intensity={1} />
         <directionalLight position={[5,5,5]}/>
         <Model position={[0,0,0]} annotations={annotations} setAnnotations={setAnnotations}></Model>
