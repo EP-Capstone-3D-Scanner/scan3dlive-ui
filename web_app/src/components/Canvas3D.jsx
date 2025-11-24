@@ -65,7 +65,7 @@ function Canvas3D(props) {
           </Html>
         ))}
         
-        <Html position={[0, 0, -2]} transform> 
+        <Html zIndexRange={[0, 0]} position={[0, 0, -2]} transform> 
           <div class="annotation bg-dark text-white">this text will rotate with the scene</div>
         </Html>
       </Canvas>

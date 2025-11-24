@@ -3,11 +3,11 @@ import Navbar from 'react-bootstrap/Navbar';
 import NavDropdown from 'react-bootstrap/NavDropdown';
 import Nav from 'react-bootstrap/Nav';
 
-const Navigator = () => {
+const Navigator = ({sidebarDisplay, setSidebarDisplay}) => {
 {/*<Navbar.Brand className = "ms-0"> <p class="h3 fw-bold text-white">Point Cloud Viewer</p></Navbar.Brand>*/}   
     return (
         <Navbar id="Navigator" bg="dark" variant="dark" expand="lg" className="w-100 p-0 d-flex align-items-center">
-            <Navbar.Collapse id="basic-navbar-nav" className="me-auto h-100 p-0 d-flex align-items-center">
+            <Navbar.Collapse className="me-auto h-100 p-0 d-flex align-items-center">
                 <Nav className="me-auto h-100 p-0 d-flex align-items-center">
                     <NavDropdown title="File" className="me-auto h-100 d-flex align-items-center">
                         <NavDropdown.Item>New</NavDropdown.Item>
@@ -52,8 +52,12 @@ const Navigator = () => {
                     </NavDropdown>
                 </Nav>
             </Navbar.Collapse>
+            
+            <button className="Sidebar-toggle-button ms-auto" onClick={()=>{setSidebarDisplay(!sidebarDisplay);}}>
+            ◥ 
+            </button>
         </Navbar> 
-    );
+    )
 };
 
 export default Navigator;

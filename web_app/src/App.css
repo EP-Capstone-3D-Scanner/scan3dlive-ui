@@ -22,6 +22,7 @@
   display: flex;
   align-items: center;    
   border-radius: 4px;
+  width:auto;
 }
 
 #Navigator .dropdown-toggle::after {
@@ -71,19 +72,71 @@ a.dropdown-toggle.nav-link[role="button"][href="#"][tabindex="0"]:focus {
 
 #web_app_container {
   width:100%;
-  height:90%;
+  height:94%;
   display:block;
   position:relative;
 }
 
 
 
-
+/* Sidebar CSS Control*/
 #Sidebar {
-  width: 3%;
+  width: 20vw;
   height:100%;
+  border-color: #494f54;
+  transition:right 0.3s ease;
+  z-index:1000;
+  right:0px;
 }
 
+#Sidebar.close {
+  right: -300px;
+}
+
+/* Base tab button styling */
+#Sidebar .Sidebar-tab .nav-link {
+  background-color: #000;
+  color: white;
+  border-radius: 0;
+  border: 1px solid #494f54;
+  border-bottom: 1px solid #494f54;
+  transition: background-color 0.15s ease-in-out;
+}
+
+/* Hover state */
+#Sidebar .Sidebar-tab .nav-link:hover {
+  background-color: #212529;
+}
+
+/* Active tab */
+#Sidebar .Sidebar-tab .nav-link.active {
+  background-color: #212529;
+  color: white;
+  border-bottom-color: transparent; /* prevents flickering */
+}
+
+/* Remove Bootstrap's default white underline */
+#Sidebar .nav-tabs {
+  border-bottom: none;
+}
+
+.Sidebar-toggle-button {
+  background-color: #212529;
+  border:none;
+  border-radius:4px;
+  margin-right: 5px;
+  color: rgba(255, 255, 255, 0.55);
+  width:2rem;
+  font-weight: bold;
+}
+
+.Sidebar-toggle-button:hover {
+  background-color: #494f54;
+}
+
+
+
+/*
 .sidebar-button {
   width: 100%;
   aspect-ratio: 1/1;
@@ -99,3 +152,4 @@ a.dropdown-toggle.nav-link[role="button"][href="#"][tabindex="0"]:focus {
     width: 95%;
   };
 }
+*/
