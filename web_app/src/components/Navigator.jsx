@@ -53,7 +53,7 @@ const Navigator = ({sidebarDisplay, setSidebarDisplay}) => {
                 </Nav>
             </Navbar.Collapse>
             
-            <button className="Sidebar-toggle-button ms-auto" onClick={()=>{setSidebarDisplay(!sidebarDisplay);}}>
+            <button className="Sidebar-toggle-button ms-auto h-100" onClick={()=>{setSidebarDisplay(!sidebarDisplay);}}>
             ◥ 
             </button>
         </Navbar> 
