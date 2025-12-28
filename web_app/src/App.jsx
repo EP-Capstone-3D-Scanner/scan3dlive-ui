@@ -7,13 +7,25 @@ import Sidebar from './components/Sidebar';
 
 function App() {
   const [sidebarDisplay, setSidebarDisplay] = useState(false);
+  const [selectedModel, setSelectedModel] = useState(null);
+  const [annotations, setAnnotations] = useState(new Map());
 
   return (
     <div id="web_app" class="vh-100">
       <Navigator sidebarDisplay={sidebarDisplay} setSidebarDisplay={setSidebarDisplay}></Navigator>
       <div id="web_app_container">
-        <Canvas3D></Canvas3D>
-        <Sidebar sidebarDisplay={sidebarDisplay} setSidebarDisplay={setSidebarDisplay}></Sidebar>
+        <Canvas3D 
+          selectedModel={selectedModel} 
+          setSelectedModel={setSelectedModel}
+          annotations={annotations}
+          setAnnotations={setAnnotations}> 
+        </Canvas3D>
+        <Sidebar 
+          sidebarDisplay={sidebarDisplay} 
+          setSidebarDisplay={setSidebarDisplay}
+          annotations={annotations}
+          setAnnotations={setAnnotations}>
+        </Sidebar>
       </div>
     </div>
   )

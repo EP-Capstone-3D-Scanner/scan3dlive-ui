@@ -134,6 +134,15 @@ a.dropdown-toggle.nav-link[role="button"][href="#"][tabindex="0"]:focus {
   background-color: #494f54;
 }
 
+.Sidebar-annotation-item {
+  background-color: #2b2f32;
+  color:white;
+  border-color: #494f54;
+  border-right:none;
+  border-left:none;
+  font-size: 0.8rem;
+  height:2rem;
+}
 
 
 /*
