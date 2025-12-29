@@ -7,7 +7,14 @@ import OctreeTest from './OctreeTest'
 import * as Loggers from './Loggers'
 
 
-function Model({chunk, position, annotations, setAnnotations, selectedModel, setSelectedModel}) {
+function Model({
+  chunk, 
+  position, 
+  annotations, 
+  setAnnotations, 
+  selectedModel, 
+  setSelectedModel
+}) {
   const geometry = useLoader(PLYLoader, 'point_clouds/test1.ply');
 
   const handlePointsClick = (e) => {
@@ -34,15 +41,22 @@ function Model({chunk, position, annotations, setAnnotations, selectedModel, set
 }
 
 
-function Canvas3D({annotations, setAnnotations, selectedModel, setSelectedModel}) {
+function Canvas3D({
+  annotations, 
+  setAnnotations, 
+  selectedModel, 
+  setSelectedModel
+}) {
+
   const binaryFile = "point_clouds/octree_bin1.bin";
   return (
     <>
     <div id="Canvas3D" class="h-100 w-100">
-      <Canvas camera={{position:[0,1.5,12]}}>
+      <Canvas camera={{position:[0, 1.5, 12]}}>
         {/*<Loggers.CameraLogger />*/}
+        {/*<Loggers.ProjectPointLogger />*/}
         {/*<Loggers.CanvasLogger />*/}
-        <Loggers.ProjectPointLogger />
+        <Loggers.BoundingBox min={[-5, -5, -5]} max={[5, 5, 5]} />
         <gridHelper args = {[20]}></gridHelper>
         <OrbitControls></OrbitControls>
         <ambientLight intensity={1} />

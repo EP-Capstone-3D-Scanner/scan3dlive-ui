@@ -1,6 +1,6 @@
 import React from 'react';
 import * as THREE from 'three';
-import { useEffect , useRef } from 'react';
+import { useState , useEffect , useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber'
 
 /*
@@ -105,3 +105,95 @@ export function ProjectPointLogger() {
 
   return null;
 }
+
+export const BoundingBox = ({ min = [-5, -5, -5], max = [5, 5, 5] }) => {
+  const meshRef = useRef(0);
+  const { camera, gl , size} = useThree();
+  const rect = gl.domElement.getBoundingClientRect();
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  // Generate all 8 corners of the bounding box
+  const corners = [
+    [min[0], min[1], min[2]],
+    [min[0], min[1], max[2]],
+    [min[0], max[1], min[2]],
+    [min[0], max[1], max[2]],
+    [max[0], min[1], min[2]],
+    [max[0], min[1], max[2]],
+    [max[0], max[1], min[2]],
+    [max[0], max[1], max[2]],
+  ].map((c) => new THREE.Vector3(...c));
+
+  // Helper: Project 3D point to 2D screen coordinates
+  const projectToScreen = (vec3) => {
+    const vec = vec3.clone();
+    vec.project(camera);
+    return {
+      x: ((vec.x + 1) / 2) * size.width,
+      y: ((-vec.y + 1) / 2) * size.height,
+    };
+  };
+
+  useEffect(() => {
+    camera.updateMatrixWorld();
+    camera.updateProjectionMatrix();
+    const handleMouseMove = (event) => {
+      setMousePos({ x: event.clientX, y: event.clientY });
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
+  useFrame(() => {
+    gl.setSize(gl.domElement.clientWidth, gl.domElement.clientHeight);
+    camera.updateMatrixWorld();
+    camera.updateProjectionMatrix();
+    
+    meshRef.current += 1;
+    if(meshRef.current % 300) {
+      return;
+    }
+
+    // Display size in CSS pixels
+    console.log('Canvas clientWidth (CSS px):', size.width);
+    console.log('Canvas clientHeight (CSS px):', size.height);
+    console.log(size)
+    
+
+    // Log mouse position
+    console.log("Mouse Position (pixels):", mousePos);
+
+    // Log camera params
+    console.log("Camera:");
+    console.log(camera);
+    
+
+    // Log corners in 3D
+    console.log("3D Corners:");
+    //corners.forEach((c, i) => console.log(`Corner ${i}:`, c.toArray()));
+
+    // Log corners projected to 2D screen
+    console.log("2D Screen Coordinates:");
+    corners.forEach((c, i) => console.log(`Corner ${i}:`, projectToScreen(c)));
+  });
+
+  return (
+    <>
+      {/* Draw box as a line geometry */}
+      <lineSegments>
+        <edgesGeometry args={[new THREE.BoxGeometry(...max.map((v, i) => v - min[i]))]} />
+        <lineBasicMaterial color="red" />
+      </lineSegments>
+
+      {/* Draw small spheres at each corner */}
+      {corners.map((corner, i) => (
+        <mesh key={i} position={corner}>
+          <sphereGeometry args={[0.05, 8, 8]} />
+          <meshBasicMaterial color="blue" />
+        </mesh>
+      ))}
+
+      {/* Display corner positions as text using <Html> if you want */}
+    </>
+  );
+};
