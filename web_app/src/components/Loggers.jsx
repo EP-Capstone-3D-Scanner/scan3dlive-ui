@@ -159,7 +159,6 @@ export const BoundingBox = ({ min = [-5, -5, -5], max = [5, 5, 5] }) => {
     console.log('Canvas clientHeight (CSS px):', size.height);
     console.log(size)
     
-
     // Log mouse position
     console.log("Mouse Position (pixels):", mousePos);
 
@@ -167,7 +166,6 @@ export const BoundingBox = ({ min = [-5, -5, -5], max = [5, 5, 5] }) => {
     console.log("Camera:");
     console.log(camera);
     
-
     // Log corners in 3D
     console.log("3D Corners:");
     //corners.forEach((c, i) => console.log(`Corner ${i}:`, c.toArray()));
@@ -175,6 +173,24 @@ export const BoundingBox = ({ min = [-5, -5, -5], max = [5, 5, 5] }) => {
     // Log corners projected to 2D screen
     console.log("2D Screen Coordinates:");
     corners.forEach((c, i) => console.log(`Corner ${i}:`, projectToScreen(c)));
+
+    // --- NEW: Calculate projected area ---
+    const projected = corners.map(projectToScreen);
+
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    projected.forEach(({ x, y }) => {
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    });
+
+    const normWidth = maxX - minX;
+    const normHeight = maxY - minY;
+    const normalizedArea = normWidth * normHeight;
+
+    console.log("Projected 2D Area (normalized):", normalizedArea);
+    console.log("Screen bounds:", { minX, maxX, minY, maxY });
   });
 
   return (
