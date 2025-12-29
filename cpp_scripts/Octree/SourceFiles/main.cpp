@@ -1,10 +1,11 @@
+#include "MathTypes.h"
+#include "ModifiableNestedOctree.h"
+#include "Points.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <vector>
 #include <string>
-#include "ModifiableNestedOctree.h"
-#include "Points.h"
 
 
 /**
@@ -16,9 +17,9 @@ TODO: 5. Implement projections of BoundingBox onto screen + BoundingBox screen s
     create node to websocket function based on screen size, not octree level (NOT DONE)
 TODO: 6. Implement Octree node IDs (DONE)
 TODO: 7. Clean up code and comment (DONE)
-TODO: 8. Create Hashmap that tracks which nodes are to be shown in UI
+TODO: 8. Create Hashmap that tracks which nodes are to be shown in UI (UNNECCESSARY?)
 TODO: 9. Update OctreeNode websocket functions to send chunked per-node data (update Header to include
-    nodes that need to be removed and nodes that need to be added along with point data)
+    nodes that need to be removed and nodes that need to be added along with point data) (UNNECESSARY?)
 TODO: 10. Update UI to have cache of nodes, pop unneeded nodes, and draw new nodes in point object
 TODO: 11. Optimize code, comment everything
 TODO: 12. Finish websockets + networking code. Possibly use WebAssembly?
@@ -34,10 +35,10 @@ int main() {
     Point3D world_point = {2, 1, 1};
 
     Matrix4x4 worldToCamera = {{
-        {{1, 0, 0, 0}}, 
-        {{0, 0.9922778767136676, -0.12403473458920855, -2.220446049250313e-16}}, 
-        {{0, 0.12403473458920855, 0.9922778767136676, -12.093386622447824}}, 
-        {{0, 0, 0, 1}}
+        {{0.6132673774338434, 2.775557561562892e-17, -0.7898753849661453, -5.329070518200753e-15}}, 
+        {{-0.3707579367545945, 0.8829920797773887, -0.2878602775373465, -5.329070518200753e-15}}, 
+        {{0.6974537089362219, 0.4693878854959958, 0.5415102370599341, -80.68160734792751}}, 
+        {{0, 0, 0, 1.0000000000000002}}
     }};
 
     Matrix4x4 projection = {{
@@ -47,17 +48,27 @@ int main() {
         {{0, 0, -1, 0}}
     }};
 
+    Matrix4x4 Identity = {{
+        {{1, 2, 0, 0}}, 
+        {{0, 1, 0, 0}}, 
+        {{0, 0, 1, 0}}, 
+        {{0, 0, 0, 1}}
+    }};
+
     Camera c = {worldToCamera, projection, 1280, 161.0500030517578};
+
+    
 
     ModifiableNestedOctree root(root_tl, root_br);
     BoundingBox bb = root.getBoundingBox();
-    std::array<Point4D, 8> bbNDC = bb.getCornersNDC(c);
-    for (Point4D corner : bbNDC) {
-        corner.toScreenCoordinates(c);
+    std::array<Point3D, 8> bbNDC = bb.getCorners();
+    for (Point3D corner : bbNDC) {
+        std::cout<< "(screenX,screenY) = " << corner.getScreenCoordinates(c) << std::endl; 
     }
 
 
-    //std::cout << "Size:" << bb.getScreenProjectedSize(c) << std::endl;
+    std::cout << "Size:" << bb.getScreenProjectedSize(c) << std::endl;
+    
 
     /*
     std::ifstream file("OctreeTestPoints.csv");

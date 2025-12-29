@@ -1,3 +1,4 @@
+#include "MathTypes.h"
 #include "Points.h"
 #include <iostream>
 #include <iomanip>
@@ -14,8 +15,66 @@ Camera::Camera(
     double screenHeight_
 ) : viewMatrixInverse(viewMatrixInverse_), projection(projection_),
     screenWidth(screenWidth_), screenHeight(screenHeight_) {
-        projection[0][0] = 1.30322537284/(screenWidth_ / screenHeight_);
+        projection[0][0] = 1.30322537284/(screenWidth_ / screenHeight_); // currently assume fov is 75 degrees
     }
+
+
+/**
+ * @struct Point2D
+ * @brief Point2D Struct Definitions
+ * */
+
+Point2D::Point2D(
+    double x_, 
+    double y_ 
+): x(x_), y(y_) {}
+
+double& Point2D::operator[](int i) {
+    
+    return i == 0 ? x : y;
+
+}
+
+const double& Point2D::operator[](int i) const {
+    
+    return i == 0 ? x : y;
+
+}
+
+Point2D& Point2D::operator/=(double d) {
+    
+    x /= d;
+    y /= d;
+    
+    return *this;
+}
+
+Point2D operator+(
+    const Point2D& p1, 
+    const Point2D& p2
+) {
+    
+    return Point2D{p1.x + p2.x, p1.y + p2.y};
+
+}
+
+Point2D operator/(
+    Point2D p, 
+    double denominator
+) {
+    
+    return p /= denominator;
+
+}
+
+std::ostream& operator<<(
+    std::ostream& os, 
+    const Point2D& p
+) {
+    
+    return os << "(" << p.x << ", " << p.y << ")";
+
+}
 
 /**
  * @struct Point3D
@@ -27,6 +86,31 @@ Point3D::Point3D(
     double y_, 
     double z_
 ): x(x_), y(y_), z(z_) {}
+
+Point3D& Point3D::toNDC(const Camera& c) {
+    
+    *this = c.projection*(c.viewMatrixInverse*(*this));
+    
+    return *this;
+
+}
+
+Point3D Point3D::getNDC(const Camera& c) const {
+    
+    Point3D p = *this;
+    
+    return p.toNDC(c);
+
+}
+
+Point2D Point3D::getScreenCoordinates(const Camera& c) const {
+    Point3D pNDC = this->getNDC(c);
+    double screenX = (pNDC.x + 1.0) * 0.5 * c.screenWidth;
+    double screenY = (1.0 - pNDC.y) * 0.5 * c.screenHeight;
+    
+    return Point2D{screenX, screenY};
+
+}
 
 double& Point3D::operator[](int i) {
     
@@ -115,26 +199,16 @@ Point4D::Point4D(
     double w_
 ): Point3D(p), w(w_) {}
 
-double& Point4D::operator[](int i) {
+/*
+Point2D Point4D::getScreenCoordinates(const Camera& c) {
     
-    return i == 0 ? x : (i == 1 ? y : (i == 2 ? z : w));
+    double screenX = (x + 1.0) * 0.5 * c.screenWidth;
+    double screenY = (1.0 - y) * 0.5 * c.screenHeight;
+    
+    return Point2D{screenX, screenY};
 
 }
-
-const double& Point4D::operator[](int i) const {
-    
-    return i == 0 ? x : (i == 1 ? y : (i == 2 ? z : w));
-
-}
-
-std::ostream& operator<<(
-    std::ostream& os, 
-    const Point4D& p
-) {
-    
-    return os << "(" << p.x << ", " << p.y << ", " << p.z << ", " << p.w << ")";
-
-}
+*/
 
 Point4D& Point4D::homogenize() {
     
@@ -147,12 +221,23 @@ Point4D& Point4D::homogenize() {
 
 }
 
-void Point4D::toScreenCoordinates(const Camera& c) {
+Point4D Point4D::homogenized() const {
     
-    double screenX = (x + 1.0) * 0.5 * c.screenWidth;
-    double screenY = (1.0 - y) * 0.5 * c.screenHeight;
+    Point4D p = *this;
     
-    std::cout << "(screenX,screenY) = (" << screenX << ", " << screenY << ")\n";
+    return p.homogenize();
+
+}
+
+double& Point4D::operator[](int i) {
+    
+    return i == 0 ? x : (i == 1 ? y : (i == 2 ? z : w));
+
+}
+
+const double& Point4D::operator[](int i) const {
+    
+    return i == 0 ? x : (i == 1 ? y : (i == 2 ? z : w));
 
 }
 
@@ -175,21 +260,12 @@ Point4D operator*(
 
 }
 
-Point4D NDC(
-    const Point3D& p,
-    const Camera& c
+std::ostream& operator<<(
+    std::ostream& os, 
+    const Point4D& p
 ) {
     
-    Point4D cameraSpaceCoords = static_cast<Point4D>(c.viewMatrixInverse * p);
-    //std::cout << "View (after MatrixWorldInverse): " << cameraSpaceCoords << '\n';
-
-    Point4D clipSpace = c.projection * cameraSpaceCoords;
-    //std::cout << "View (after ProjectionMatrix): " << clipSpace << '\n';
-
-    clipSpace.homogenize();
-    std::cout << "View (after ProjectionMatrix, Homegenized): " << clipSpace << '\n';
-
-    return clipSpace;
+    return os << "(" << p.x << ", " << p.y << ", " << p.z << ", " << p.w << ")";
 
 }
 
@@ -212,9 +288,9 @@ bool BoundingBox::containsPoint(const Point3D& p) const {
 }
 
 bool BoundingBox::inCameraFrustum(const Camera& c) const { /*INCOMPLETE FUNCTION - NEED TO UPDATE*/
-    std::array<Point4D, 8> cornersNDC = getCornersNDC(c);
+    std::array<Point3D, 8> cornersNDC = getCornersNDC(c);
 
-    for (Point4D& p : cornersNDC) {
+    for (Point3D& p : cornersNDC) {
         if(p.x>=-1 && p.x<=1 && p.y>=-1 && p.y<=1 && p.z>=-1 && p.z<=1) return true;
     }
 
@@ -224,18 +300,18 @@ bool BoundingBox::inCameraFrustum(const Camera& c) const { /*INCOMPLETE FUNCTION
 
 double BoundingBox::getScreenProjectedSize(const Camera& c) const {
 
-    std::array<Point4D, 8> cornersNDC = getCornersNDC(c);
+    std::array<Point2D, 8> cornersNDC = getCornersScreenProjected(c);
     double minX = cornersNDC[0].x, minY = cornersNDC[0].y;
     double maxX = cornersNDC[0].x, maxY = cornersNDC[0].y;
     
-    for (Point4D& p : cornersNDC) {
+    for (Point2D& p : cornersNDC) {
         if (p.x>maxX) maxX = p.x;
         if (p.x<minX) minX = p.x;
         if (p.y>maxY) maxY = p.y;
         if (p.y<minY) minY = p.y;
     }
-    
-    return (maxX-minX)*(maxY-minY)*c.screenWidth*c.screenHeight;
+
+    return (maxX-minX)*(maxY-minY);
 
 }
 
@@ -262,15 +338,27 @@ std::array<Point3D, 8> BoundingBox::getCorners() const {
 
 };
 
-std::array<Point4D, 8> BoundingBox::getCornersNDC(const Camera& c) const {
+std::array<Point3D, 8> BoundingBox::getCornersNDC(const Camera& c) const {
     
-    std::array<Point4D, 8> cornersNDC;
     std::array<Point3D, 8> corners = getCorners();
 
     for (int i = 0; i<8; ++i) {
-        cornersNDC[i] = ::NDC(corners[i], c);
+        corners[i].toNDC(c);
     }
 
-    return cornersNDC;
+    return corners;
+
+}
+
+std::array<Point2D, 8> BoundingBox::getCornersScreenProjected(const Camera& c) const {
+    
+    std::array<Point2D, 8> cornersScreenProjected;
+    const std::array<Point3D, 8> corners = getCorners();
+
+    for (int i = 0; i<8; ++i) {
+        cornersScreenProjected[i] = corners[i].getScreenCoordinates(c);
+    }
+
+    return cornersScreenProjected;
 
 }

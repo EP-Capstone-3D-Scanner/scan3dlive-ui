@@ -36,6 +36,53 @@ struct Camera {
 };
 
 /** 
+ * @struct Point2D
+ * @brief Point structure for representing (2D) points  
+ * */
+struct Point2D {
+
+    /** Point x-coordinate */
+    double x = 0;
+
+    /** Point y-coordinate */
+    double y = 0;
+
+
+    /**
+     * @brief Constructs a Point3D object from point coordinates
+     */
+    Point2D(
+        double x_ = 0, 
+        double y_ = 0 
+    );
+    
+    /**
+    * Indexed access to coordinates.
+    *
+    * @param i Index in [0, 1].
+    */
+    double& operator[](int i);
+    const double& operator[](int i) const;
+
+    Point2D&  operator/=(double d);
+};
+
+Point2D operator+(
+    const Point2D&  p1, 
+    const Point2D&  p2
+);
+
+Point2D operator/(
+    Point2D p, 
+    double denominator
+);
+
+std::ostream& operator<<(
+    std::ostream& os, 
+    const Point2D&  p
+);
+
+/** 
  * @struct Point3D
  * @brief Point structure for representing (3D) points  
  * */
@@ -59,6 +106,23 @@ struct Point3D {
         double z_ = 0
     );
     
+    /**
+    * Returns coordinates of Point3D object.
+    *
+    * @param c Camera view of 3D scene.
+    * @return NDC Coordinates of Point3D
+    */
+    Point3D& toNDC(const Camera& c);
+    Point3D getNDC(const Camera& c) const; 
+
+    /**
+    * Gets screen coodindates of 3D Point.
+    *
+    * @param c Camera view of 3D scene.
+    * @return Screen coordinates of Point3D
+    */
+    Point2D getScreenCoordinates(const Camera& c) const; //Update to return reference
+
     /**
     * Indexed access to coordinates.
     *
@@ -121,8 +185,9 @@ struct Point4D : Point3D {
     * Converts Point4D (NDC) object to screen coordinates.
     *
     * @param c Camera view of 3D scene.
+    * @return Screen coordinates of Point4D (NDC)
     */
-    void toScreenCoordinates(const Camera& c);
+    /*Point2D getScreenCoordinates(const Camera& c);*/
 
     /**
     * Converts Point4D object to Normalized Device Coordinates (NDC) equivalent
@@ -131,6 +196,7 @@ struct Point4D : Point3D {
     * @return NDC coordinates of point
     */
     Point4D& homogenize();
+    Point4D homogenized() const;
     
     double& operator[](int i);
     const double& operator[](int i) const;
@@ -145,11 +211,6 @@ Point4D operator*(
 std::ostream& operator<<(
     std::ostream& os, 
     const Point4D& p
-);
-
-Point4D NDC(
-    const Point3D&  p,
-    const Camera& c
 );
 
 /** 
@@ -194,7 +255,7 @@ struct BoundingBox {
     * @param c Camera view of 3D scene.
     * @return Size of the screen-projected bounding box
     */
-    double getScreenProjectedSize(const Camera& c) const;
+    double getScreenProjectedSize(const Camera& c) const; //Update the use getScreenProjectedSize function
 
     /**
     * Returns bounding box center point
@@ -212,12 +273,20 @@ struct BoundingBox {
     std::array<Point3D, 8> getCorners() const;
 
     /**
-    * Obtains corners of the screen size of the bounding box in NDC coordinates
+    * Obtains corners of the bounding box in NDC coordinates
     *
     * @param c Camera view of 3D scene.
     * @return NDC coordinate points of the corners of the bounding box
     */
-    std::array<Point4D, 8> getCornersNDC(const Camera& c) const;
+    std::array<Point3D, 8> getCornersNDC(const Camera& c) const;
+
+    /**
+    * Obtains corners of the bounding box in NDC coordinates
+    *
+    * @param c Camera view of 3D scene.
+    * @return Screen coordinate points of the corners of the bounding box
+    */
+    std::array<Point2D, 8> getCornersScreenProjected(const Camera& c) const;
 };
 
 
