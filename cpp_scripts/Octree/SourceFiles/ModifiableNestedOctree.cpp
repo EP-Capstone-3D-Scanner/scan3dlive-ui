@@ -101,7 +101,7 @@ ModifiableNestedOctree* ModifiableNestedOctree::createChild(int childIndex) {
 
 ModifiableNestedOctree* ModifiableNestedOctree::getChild(int childIndex) const {
     
-    if(childIndex > 7 && childIndex < 0 && children[childIndex]) {
+    if(childIndex >= 0 && childIndex < 8 && children[childIndex]) {
         return children[childIndex].get();
     }
 
