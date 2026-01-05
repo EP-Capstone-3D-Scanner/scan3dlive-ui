@@ -6,6 +6,7 @@
 #include <string>
 #include <cstring>
 #include <cmath>
+#include <unordered_map>
 
 /**
  * @class ModifiableNestedOctree
@@ -22,9 +23,9 @@ ModifiableNestedOctree::ModifiableNestedOctree(
 ): boundingBox(minCorner_, maxCorner_) {id=NODE_ID++;}
 
 void ModifiableNestedOctree::insertPoint(const Point3D& point) {
-    
+
     if(!boundingBox.containsPoint(point)) {
-        std::cerr << "Unable to add point to ModifiableNestedOctree Instance" << std::endl;
+        std::cerr << "Unable to add point to ModifiableNestedOctree instance" << std::endl;
         return;
     }
 
@@ -60,13 +61,14 @@ void ModifiableNestedOctree::insertPoint(const Point3D& point) {
             insertedPoint = true;
             current->pointGridOccupied[gridCell] = true;
             current->pointGrid[gridCell] = point;
+            POINT_COUNT++;
             //current->printNode();
         }
         else {
             int childCoordX = point.x > center.x;
             int childCoordY = point.y > center.y;
             int childCoordZ = point.z > center.z;
-            int childIndex = (childCoordZ<<2) | (childCoordY<<1) | (childCoordZ);
+            int childIndex = (childCoordZ<<2) | (childCoordY<<1) | (childCoordX);
             //std::cout<<"move to child(" << childIndex <<")" << std::endl;
             current = current->createChild(childIndex);
         }
@@ -105,7 +107,9 @@ ModifiableNestedOctree* ModifiableNestedOctree::getChild(int childIndex) const {
         return children[childIndex].get();
     }
 
-    std::cerr << "Unable to access Modifiable Nested Octree child " << childIndex;
+    if (childIndex < 0 || childIndex >= 8) {
+        std::cerr << "Invalid child index" << std::endl;
+    }
 
     return nullptr;
 
@@ -123,9 +127,9 @@ void ModifiableNestedOctree::compileTree(
     for (int i = 0; i < pointGrid.size(); ++i) {
         if (pointGridOccupied[i]) {
             const Point3D& p = pointGrid[i];
-            out.push_back(static_cast<float>(p.x));
-            out.push_back(static_cast<float>(p.y));
-            out.push_back(static_cast<float>(p.z));
+            out.push_back(p.x);
+            out.push_back(p.y);
+            out.push_back(p.z);
         }
     }
 
@@ -137,6 +141,140 @@ void ModifiableNestedOctree::compileTree(
     }
 
 }
+
+/*Need to cleanup this function*/
+void ModifiableNestedOctree::compileR3FTree(
+    std::vector<float>& out, 
+    const Camera c,
+    int depth,
+    int maxDepth,
+    float minPixelSize
+) const {
+    
+    if(depth>maxDepth) {
+        return;
+    }
+
+
+    if (!boundingBox.inCameraFrustum(c) || boundingBox.getScreenProjectedSize(c) < minPixelSize) return; //Check if node is visible
+    
+    //Add Id of Node
+    out.push_back(static_cast<float>(id));
+    
+    //Add Bounding Box Corners
+    out.push_back(boundingBox.minCorner.x);
+    out.push_back(boundingBox.minCorner.y);
+    out.push_back(boundingBox.minCorner.z);
+    out.push_back(boundingBox.maxCorner.x);
+    out.push_back(boundingBox.maxCorner.y);
+    out.push_back(boundingBox.maxCorner.z);
+    
+    // Add pointCount to buffer
+    int pointCount = 0;
+    for (int i = 0; i < pointGrid.size(); ++i) {
+        if (pointGridOccupied[i]) {
+            pointCount++;
+        }
+    }
+    out.push_back(static_cast<float>(pointCount));
+
+    // Add points from this node's grid
+    for (int i = 0; i < pointGrid.size(); ++i) {
+        if (pointGridOccupied[i]) {
+            const Point3D& p = pointGrid[i];
+            out.push_back(p.x);
+            out.push_back(p.y);
+            out.push_back(p.z);
+        }
+    }
+
+    // Recurse into children
+    for (int i = 0; i < 8; ++i) {
+        if (children[i]) {
+            children[i]->compileR3FTree(out, c, depth+1, maxDepth, minPixelSize);
+        }
+    }
+
+}
+
+/*Need to cleanup this function*/
+void ModifiableNestedOctree::compileR3FTree2(
+    std::vector<float>& out, 
+    const Camera c,
+    int depth,
+    int maxDepth,
+    float minPixelSize
+) const {
+    
+    if(depth>maxDepth) {
+        return;
+    }
+
+    //if (!boundingBox.inCameraFrustum(c) || (boundingBox.getScreenProjectedSize(c) < minPixelSize)) return; //Check if node is visible
+
+    // Add points from this node's grid
+    for (int i = 0; i < pointGrid.size(); ++i) {
+        if (pointGridOccupied[i]) {
+            const Point3D& p = pointGrid[i];
+            out.push_back(p.x);
+            out.push_back(p.y);
+            out.push_back(p.z);
+        }
+    }
+
+    // Recurse into children
+    for (int i = 0; i < 8; ++i) {
+        if (children[i]) {
+            children[i]->compileR3FTree2(out, c, depth+1, maxDepth, minPixelSize);
+        }
+    }
+
+}
+
+void* ModifiableNestedOctree::serializeForR3F(
+    const Camera c, 
+    int maxDepth, 
+    float minPixelSize
+) const {
+    
+    std::vector<float> positions;
+    compileR3FTree(positions, c, 0, maxDepth, minPixelSize);
+
+    uint32_t payloadBytes = positions.size() * sizeof(float);
+    uint32_t totalBytes = sizeof(uint32_t) + payloadBytes; //Allocate for header + points data
+
+    uint8_t* buffer = (uint8_t*)malloc(totalBytes);
+
+    std::memcpy(buffer, &payloadBytes, sizeof(uint32_t));
+    std::memcpy(buffer + sizeof(uint32_t), positions.data(), payloadBytes);
+
+    return buffer;
+
+}
+
+void* ModifiableNestedOctree::serializeForR3F2(
+    const Camera c, 
+    int maxDepth, 
+    float minPixelSize
+) const {
+    
+    std::vector<float> positions;
+    positions.reserve(POINT_COUNT*3);
+    compileR3FTree2(positions, c, 0, maxDepth, minPixelSize);
+
+    uint32_t payloadBytes = positions.size() * sizeof(float);
+    uint32_t totalBytes = sizeof(uint32_t) + payloadBytes; //Allocate for header + points data
+
+    uint8_t* buffer = (uint8_t*)malloc(totalBytes);
+
+    std::memcpy(buffer, &payloadBytes, sizeof(uint32_t));
+    std::memcpy(buffer + sizeof(uint32_t), positions.data(), payloadBytes);
+
+    return buffer;
+
+}
+
+
 
 std::vector<uint8_t> ModifiableNestedOctree::serializeForWebSocket(
     int maxDepth,

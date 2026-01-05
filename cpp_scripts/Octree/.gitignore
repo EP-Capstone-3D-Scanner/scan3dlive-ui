@@ -1,4 +1,4 @@
 .vscode
 build
-SourceFiles/octree_output.txt
-SourceFiles/OctreeTestPoints.csv
+OutputFiles
+SourceFiles/EmscriptenMain.cpp

@@ -6,6 +6,7 @@
 #include <vector>
 #include <fstream>
 #include <string>
+#include <unordered_map>
 
 /** 
  * @class ModifiableNestedOctree
@@ -13,13 +14,12 @@
  * */
 class ModifiableNestedOctree {
 private:
-    /** Static variable Id tracker */
-    inline static int NODE_ID = 0;
 
     /** Resolution of MNO Grid */
-    static const int GRID_RESOLUTION = 3;
+    static const int GRID_RESOLUTION = 4;
     static const int GRID_LENGTH = 1<<GRID_RESOLUTION;
     static const int GRID_CELL_COUNT = GRID_LENGTH*GRID_LENGTH*GRID_LENGTH;
+    static const int NODE_POINT_BUFFER = 500;
 
     /** Id of MNO object */
     int id;
@@ -28,15 +28,25 @@ private:
     BoundingBox boundingBox;
 
     /** Point grid points of the MNO node*/
-    std::array<Point3D, GRID_CELL_COUNT> pointGrid;
+    std::array<Point3D, GRID_CELL_COUNT> pointGrid; // Will be deprecated
 
     /** Point grid occupation array */
-    std::array<bool, GRID_CELL_COUNT> pointGridOccupied{};
+    std::array<bool, GRID_CELL_COUNT> pointGridOccupied{}; // Will be deprecated
+
+    /** Point buffer for the MNO node*/
+    //std::array<Point3D, NODE_POINT_BUFFER> pointBuffer; // Need to insert...
 
     /** Children of the MNO node*/
     std::array<std::unique_ptr<ModifiableNestedOctree>, 8> children;
 
 public:
+
+    /** Static variable Id tracker */
+    inline static int NODE_ID = 0;
+
+    /** Point Count Tracker */
+    inline static int POINT_COUNT = 0;
+
     /**
      * @brief Constructs a MNO node from bounding box range
      */
@@ -83,6 +93,20 @@ public:
     * @param maxDepth Max depth to traverse into MNO
     */
     void compileTree(std::vector<float>& out, int currentDepth, int maxDepth) const;
+    void compileR3FTree(
+        std::vector<float>& out, 
+        const Camera c, 
+        int currentDepth, 
+        int maxDepth,
+        float minPixelSize
+    ) const;
+    void compileR3FTree2(
+        std::vector<float>& out, 
+        const Camera c, 
+        int currentDepth, 
+        int maxDepth,
+        float minPixelSize
+    ) const;
 
     /**
     * Compiles info on MNO node into text buffer (includes children)
@@ -105,5 +129,19 @@ public:
     * @param fileName Name of the binary file to output
     * @return Binary buffer of Octree information and binary file
     */
-    std::vector<uint8_t> serializeForWebSocket(int maxDepth, const std::string& fileName) const;
+    std::vector<uint8_t> serializeForWebSocket(
+        int maxDepth, 
+        const std::string& fileName
+    ) const;
+    void* serializeForR3F(
+        const Camera c, 
+        int maxDepth,
+        float minPixelSize
+    ) const;
+    void* serializeForR3F2(
+        const Camera c, 
+        int maxDepth,
+        float minPixelSize
+    ) const;
+
 };

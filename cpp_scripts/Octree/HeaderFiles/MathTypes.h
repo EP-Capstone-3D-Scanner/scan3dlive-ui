@@ -8,7 +8,7 @@
  * @typedef Matrix4x4
  * @brief Matrix object typedef with 4x4 size  
  * */
-using Matrix4x4 = std::array<std::array<double, 4>, 4>;
+using Matrix4x4 = std::array<std::array<float, 4>, 4>;
 
 /**
  * Prints a matrix to the console.

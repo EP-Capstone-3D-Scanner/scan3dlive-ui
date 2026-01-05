@@ -19,10 +19,10 @@ struct Camera {
     Matrix4x4 projection;
 
     /** Client screen width */
-    double screenWidth;
+    float screenWidth;
 
     /** Client screen height */
-    double screenHeight;
+    float screenHeight;
 
     /**
      * @brief Constructs a camera object from renderer matrices and screen dimensions
@@ -30,9 +30,25 @@ struct Camera {
     Camera(
         const Matrix4x4& viewMatrixInverse_,
         const Matrix4x4& projection_,
-        double screenWidth_,
-        double screenHeight_  
+        float screenWidth_,
+        float screenHeight_  
     );
+
+    void setViewMatrixInverse(
+        float vmi11, float vmi12, float vmi13, float vmi14, 
+        float vmi21, float vmi22, float vmi23, float vmi24, 
+        float vmi31, float vmi32, float vmi33, float vmi34,
+        float vmi41, float vmi42, float vmi43, float vmi44
+    );
+
+    void setProjectionMatrix(
+        float pm11, float pm12, float pm13, float pm14, 
+        float pm21, float pm22, float pm23, float pm24,  
+        float pm31, float pm32, float pm33, float pm34, 
+        float pm41, float pm42, float pm43, float pm44, 
+        float vppr
+    );
+
 };
 
 /** 
@@ -42,18 +58,18 @@ struct Camera {
 struct Point2D {
 
     /** Point x-coordinate */
-    double x = 0;
+    float x = 0;
 
     /** Point y-coordinate */
-    double y = 0;
+    float y = 0;
 
 
     /**
      * @brief Constructs a Point3D object from point coordinates
      */
     Point2D(
-        double x_ = 0, 
-        double y_ = 0 
+        float x_ = 0, 
+        float y_ = 0 
     );
     
     /**
@@ -61,10 +77,10 @@ struct Point2D {
     *
     * @param i Index in [0, 1].
     */
-    double& operator[](int i);
-    const double& operator[](int i) const;
+    float& operator[](int i);
+    const float& operator[](int i) const;
 
-    Point2D&  operator/=(double d);
+    Point2D&  operator/=(float d);
 };
 
 Point2D operator+(
@@ -74,7 +90,7 @@ Point2D operator+(
 
 Point2D operator/(
     Point2D p, 
-    double denominator
+    float denominator
 );
 
 std::ostream& operator<<(
@@ -89,21 +105,21 @@ std::ostream& operator<<(
 struct Point3D {
 
     /** Point x-coordinate */
-    double x = 0;
+    float x = 0;
 
     /** Point y-coordinate */
-    double y = 0;
+    float y = 0;
 
     /** Point z-coordinate */
-    double z = 0;
+    float z = 0;
 
     /**
      * @brief Constructs a Point3D object from point coordinates
      */
     Point3D(
-        double x_ = 0, 
-        double y_ = 0, 
-        double z_ = 0
+        float x_ = 0, 
+        float y_ = 0, 
+        float z_ = 0
     );
     
     /**
@@ -128,10 +144,10 @@ struct Point3D {
     *
     * @param i Index in [0, 2].
     */
-    double& operator[](int i);
-    const double& operator[](int i) const;
+    float& operator[](int i);
+    const float& operator[](int i) const;
 
-    Point3D&  operator/=(double d);
+    Point3D&  operator/=(float d);
 };
 
 Point3D operator*(
@@ -146,7 +162,7 @@ Point3D operator+(
 
 Point3D operator/(
     Point3D p, 
-    double denominator
+    float denominator
 );
 
 std::ostream& operator<<(
@@ -161,16 +177,16 @@ std::ostream& operator<<(
 struct Point4D : Point3D {
 
     /** Point w-coordinate */
-    double w = 1;
+    float w = 1;
 
     /**
      * @brief Constructs a default Point4D object
      */
     Point4D(
-        double x_ = 0, 
-        double y_ = 0, 
-        double z_ = 0, 
-        double w_ = 1
+        float x_ = 0, 
+        float y_ = 0, 
+        float z_ = 0, 
+        float w_ = 1
     );
 
     /**
@@ -178,7 +194,7 @@ struct Point4D : Point3D {
      */
     Point4D(
         const Point3D& p, 
-        double w_ = 1
+        float w_ = 1
     );
 
     /**
@@ -198,8 +214,8 @@ struct Point4D : Point3D {
     Point4D& homogenize();
     Point4D homogenized() const;
     
-    double& operator[](int i);
-    const double& operator[](int i) const;
+    float& operator[](int i);
+    const float& operator[](int i) const;
     
 };
 
@@ -255,7 +271,7 @@ struct BoundingBox {
     * @param c Camera view of 3D scene.
     * @return Size of the screen-projected bounding box
     */
-    double getScreenProjectedSize(const Camera& c) const; //Update the use getScreenProjectedSize function
+    float getScreenProjectedSize(const Camera& c) const; //Update the use getScreenProjectedSize function
 
     /**
     * Returns bounding box center point
@@ -300,13 +316,13 @@ struct BoundingBox {
 /*
 
 MAIN CODE:
-    double M[4][4] = {{1, 0, 0, 1}, {1, 0, 0, 2}, {1, 0, 0, 3}, {4, 0, 0, 0}};
-    double p[4] = {1, 1, 1, 1};
+    float M[4][4] = {{1, 0, 0, 1}, {1, 0, 0, 2}, {1, 0, 0, 3}, {4, 0, 0, 0}};
+    float p[4] = {1, 1, 1, 1};
     projectPoint(p[0], p[1], p[2], 0, 1.5, 12, 0.9980676020975903,-0.06213744155632883,0,0);
     std::cout<<p[0]<<","<<p[1]<<","<<p[2]<<","<<p[3]<<std::endl;
 
 HEADER FILE CODE:
-inline void printMatrix4x4(const double M[4][4]) {
+inline void printMatrix4x4(const float M[4][4]) {
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
             std::cout << M[i][j] << " ";
@@ -316,14 +332,14 @@ inline void printMatrix4x4(const double M[4][4]) {
 }
 
 
-inline void quaternionToRotationMatrix(const double q[4], double M[4][4]) {
-    double w = q[0], x = q[1], y = q[2], z = q[3];
+inline void quaternionToRotationMatrix(const float q[4], float M[4][4]) {
+    float w = q[0], x = q[1], y = q[2], z = q[3];
     std::cout<<"Quaternion:"<<w<<"+"<<x<<"i+"<<y<<"j+"<<z<<"k" <<std::endl;
 
 
-    double xx = x * x, yy = y * y, zz = z * z;
-    double xy = x * y, xz = x * z, yz = y * z;
-    double wx = w * x, wy = w * y, wz = w * z;
+    float xx = x * x, yy = y * y, zz = z * z;
+    float xy = x * y, xz = x * z, yz = y * z;
+    float wx = w * x, wy = w * y, wz = w * z;
 
     M[0][0] = 1 - 2 * (yy + zz);
     M[0][1] = 2 * (xy - wz);
@@ -346,8 +362,8 @@ inline void quaternionToRotationMatrix(const double q[4], double M[4][4]) {
     M[3][3] = 1;
 }
 
-inline void transpose3x3(double M[4][4]) {
-    double temp = M[0][1];
+inline void transpose3x3(float M[4][4]) {
+    float temp = M[0][1];
     M[0][1] = M[1][0];
     M[1][0] = temp;
     temp = M[0][2];
@@ -358,14 +374,14 @@ inline void transpose3x3(double M[4][4]) {
     M[2][1] = temp;
 }
 
-inline void cameraToWorldMatrix(const double p[3], const double q[4], double M[4][4]) {
+inline void cameraToWorldMatrix(const float p[3], const float q[4], float M[4][4]) {
     quaternionToRotationMatrix(q, M);
     M[0][3] = p[0];
     M[1][3] = p[1];
     M[2][3] = p[2];
 }
 
-inline void worldToCameraMatrix(const double p[3], const double q[4], double M[4][4]) {
+inline void worldToCameraMatrix(const float p[3], const float q[4], float M[4][4]) {
     quaternionToRotationMatrix(q, M);
     std::cout<<"quatToRot" <<std::endl;
     printMatrix4x4(M);
@@ -382,17 +398,17 @@ inline void worldToCameraMatrix(const double p[3], const double q[4], double M[4
     printMatrix4x4(M);
 }
 
-inline void multiplyMatrix(const double M[4][4], double v[4]) {
-    const double temp[] = {v[0], v[1], v[2], v[3]};
+inline void multiplyMatrix(const float M[4][4], float v[4]) {
+    const float temp[] = {v[0], v[1], v[2], v[3]};
     v[0] = M[0][0]*temp[0] + M[0][1]*temp[1] + M[0][2]*temp[2] + M[0][3]*temp[3];
     v[1] = M[1][0]*temp[0] + M[1][1]*temp[1] + M[1][2]*temp[2] + M[1][3]*temp[3];
     v[2] = M[2][0]*temp[0] + M[2][1]*temp[1] + M[2][2]*temp[2] + M[2][3]*temp[3];
     v[3] = M[3][0]*temp[0] + M[3][1]*temp[1] + M[3][2]*temp[2] + M[3][3]*temp[3];
 }
 
-inline void perspectiveMatrix(double fovDegrees, double aspect, double near, double far, double P[4][4]) {
-    double fovRad = fovDegrees * 3.14159265 / 180.0;
-    double f = 1.0 / tan(fovRad / 2.0);
+inline void perspectiveMatrix(float fovDegrees, float aspect, float near, float far, float P[4][4]) {
+    float fovRad = fovDegrees * 3.14159265 / 180.0;
+    float f = 1.0 / tan(fovRad / 2.0);
 
     P[0][0] = f / aspect;
     P[0][1] = 0;
@@ -415,12 +431,12 @@ inline void perspectiveMatrix(double fovDegrees, double aspect, double near, dou
     P[3][3] = 0;
 }
 
-inline void projectPoint(double x, double y, double z, double cpx, double cpy, double cpz, double cqr, double cqi, double cqj, double cqk) {
-    double worldPos[] = {x, y, z, 1.0};
-    double p[] = {cpx, cpy, cpz};
-    double q[] = {cqr, cqi, cqj, cqk};
-    double viewMatrix[4][4];
-    double projectionMatrix[4][4];
+inline void projectPoint(float x, float y, float z, float cpx, float cpy, float cpz, float cqr, float cqi, float cqj, float cqk) {
+    float worldPos[] = {x, y, z, 1.0};
+    float p[] = {cpx, cpy, cpz};
+    float q[] = {cqr, cqi, cqj, cqk};
+    float viewMatrix[4][4];
+    float projectionMatrix[4][4];
 
     // world → camera
     worldToCameraMatrix(p, q, viewMatrix);
@@ -435,11 +451,11 @@ inline void projectPoint(double x, double y, double z, double cpx, double cpy, d
     multiplyMatrix(projectionMatrix, worldPos);
 
     // perspective divide → NDC
-    double ndcX = worldPos[0] / worldPos[3];
-    double ndcY = worldPos[1] / worldPos[3];
+    float ndcX = worldPos[0] / worldPos[3];
+    float ndcY = worldPos[1] / worldPos[3];
 
-    double screenX = (ndcX + 1.0) * 0.5 * 1280;
-    double screenY = (1.0 - ndcY) * 0.5 * 233;
+    float screenX = (ndcX + 1.0) * 0.5 * 1280;
+    float screenY = (1.0 - ndcY) * 0.5 * 233;
     std::cout << "(x,y)=(" <<screenX<<", "<<screenY<<")" <<std::endl;
 }
 */

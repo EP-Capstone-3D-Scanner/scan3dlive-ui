@@ -30,8 +30,8 @@ TODO: 15. Integrate segmentation stuff into UI + prioritize node rendering based
 
 
 int main() {
-    Point3D root_tl = {-5, -5, -5};
-    Point3D root_br = {5, 5, 5};
+    Point3D root_tl = {-1, -6, -1};
+    Point3D root_br = {15, 4, 5};
     Point3D world_point = {2, 1, 1};
 
     Matrix4x4 worldToCamera = {{
@@ -56,29 +56,17 @@ int main() {
     }};
 
     Camera c = {worldToCamera, projection, 1280, 161.0500030517578};
-
-    
-
     ModifiableNestedOctree root(root_tl, root_br);
-    BoundingBox bb = root.getBoundingBox();
-    std::array<Point3D, 8> bbNDC = bb.getCorners();
-    for (Point3D corner : bbNDC) {
-        std::cout<< "(screenX,screenY) = " << corner.getScreenCoordinates(c) << std::endl; 
-    }
-
-
-    std::cout << "Size:" << bb.getScreenProjectedSize(c) << std::endl;
     
-
-    /*
-    std::ifstream file("OctreeTestPoints.csv");
+    
+    std::ifstream file("../OutputFiles/OctreeTestPoints.csv");
     if (!file.is_open()) {
         std::cerr << "Failed to open OctreeTestPoints.csv\n";
         return 1;
     }
 
     std::string line;
-    std::vector<Point> points;
+    std::vector<Point3D> points;
     points.reserve(50000); // avoid reallocations
 
     while (std::getline(file, line)) {
@@ -86,7 +74,7 @@ int main() {
 
         std::stringstream ss(line);
         std::string token;
-        Point p;
+        Point3D p;
 
         std::getline(ss, token, ',');
         p.x = std::stod(token);
@@ -108,11 +96,14 @@ int main() {
         root.insertPoint(p);
     }
     root.printNode();
+
+    /*
     for (int i = 0; i< 11;i++) {
         std::string text = "octree_bin" + std::to_string(i) + ".bin";
         root.serializeForWebSocket(i, text);
     }
     */
+    
     return 0;
 }
 
