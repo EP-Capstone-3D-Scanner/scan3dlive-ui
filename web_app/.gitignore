@@ -24,3 +24,7 @@ public/point_clouds
 *.njsproj
 *.sln
 *.sw?
+
+#CPP Emscripten ES6 Modules Test
+src/components/OctreeModule.jsx
+src/modules

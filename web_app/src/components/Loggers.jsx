@@ -22,6 +22,7 @@ function AnimatedBox() {
   }
   <AnimatedBox></AnimatedBox>
 */
+/*<Loggers.BoundingBox min={[-5, -5, -5]} max={[5, 5, 5]} />*/
 
 export function CameraLogger() {
   const { camera } = useThree();
