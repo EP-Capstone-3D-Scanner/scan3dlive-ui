@@ -56,20 +56,17 @@ void ModifiableNestedOctree::insertPoint(const Point3D& point) {
         int gridCell = (gridCoordZ<<(GRID_RESOLUTION*2)) 
             | (gridCoordY<<GRID_RESOLUTION) | (gridCoordX);
 
-        if(current->pointGridOccupied[gridCell] == false) {
-            //std::cout<<"inserted point" << std::endl;
-            insertedPoint = true;
-            current->pointGridOccupied[gridCell] = true;
-            current->pointGrid[gridCell] = point;
+        if(current->pointGridMap.count(gridCell) == 0) {
+            current->pointGridMap[gridCell] = point;
             POINT_COUNT++;
-            //current->printNode();
+            insertedPoint = true;
         }
+
         else {
             int childCoordX = point.x > center.x;
             int childCoordY = point.y > center.y;
             int childCoordZ = point.z > center.z;
             int childIndex = (childCoordZ<<2) | (childCoordY<<1) | (childCoordX);
-            //std::cout<<"move to child(" << childIndex <<")" << std::endl;
             current = current->createChild(childIndex);
         }
     }
@@ -124,13 +121,11 @@ void ModifiableNestedOctree::compileTree(
     if (currentDepth > maxDepth) return;
 
     // Add points from this node's grid
-    for (int i = 0; i < pointGrid.size(); ++i) {
-        if (pointGridOccupied[i]) {
-            const Point3D& p = pointGrid[i];
-            out.push_back(p.x);
-            out.push_back(p.y);
-            out.push_back(p.z);
-        }
+    for (const auto& points : pointGridMap) {
+        const Point3D& p = points.second;
+        out.push_back(p.x);
+        out.push_back(p.y);
+        out.push_back(p.z);
     }
 
     // Recurse into children
@@ -170,22 +165,15 @@ void ModifiableNestedOctree::compileR3FTree(
     out.push_back(boundingBox.maxCorner.z);
     
     // Add pointCount to buffer
-    int pointCount = 0;
-    for (int i = 0; i < pointGrid.size(); ++i) {
-        if (pointGridOccupied[i]) {
-            pointCount++;
-        }
-    }
+    int pointCount = pointGridMap.size();
     out.push_back(static_cast<float>(pointCount));
 
     // Add points from this node's grid
-    for (int i = 0; i < pointGrid.size(); ++i) {
-        if (pointGridOccupied[i]) {
-            const Point3D& p = pointGrid[i];
-            out.push_back(p.x);
-            out.push_back(p.y);
-            out.push_back(p.z);
-        }
+    for (const auto& points : pointGridMap) {
+        const Point3D& p = points.second;
+        out.push_back(p.x);
+        out.push_back(p.y);
+        out.push_back(p.z);
     }
 
     // Recurse into children
@@ -210,16 +198,14 @@ void ModifiableNestedOctree::compileR3FTree2(
         return;
     }
 
-    //if (!boundingBox.inCameraFrustum(c) || (boundingBox.getScreenProjectedSize(c) < minPixelSize)) return; //Check if node is visible
+    if (!boundingBox.inCameraFrustum(c) || (boundingBox.getScreenProjectedSize(c) < minPixelSize)) return; //Check if node is visible
 
     // Add points from this node's grid
-    for (int i = 0; i < pointGrid.size(); ++i) {
-        if (pointGridOccupied[i]) {
-            const Point3D& p = pointGrid[i];
-            out.push_back(p.x);
-            out.push_back(p.y);
-            out.push_back(p.z);
-        }
+    for (const auto& points : pointGridMap) {
+        const Point3D& p = points.second;
+        out.push_back(p.x);
+        out.push_back(p.y);
+        out.push_back(p.z);
     }
 
     // Recurse into children
@@ -330,10 +316,8 @@ void ModifiableNestedOctree::printNode() const {
     std::cout << "MinCorner:" << boundingBox.minCorner << std::endl;
     std::cout << "MaxCorner:" << boundingBox.maxCorner << std::endl;
     
-    for (int i = 0; i<pointGrid.size(); ++i) {
-        if(pointGridOccupied[i]) {
-            std::cout << "\tPoint (" << i <<"):" << pointGrid[i] << std::endl;
-        }
+    for (const auto& points : pointGridMap) {
+        std::cout << "\tPoint (" << points.first <<"):" << points.second << std::endl;
     }
 
 }
@@ -349,10 +333,8 @@ void ModifiableNestedOctree::printNodeRecursive(std::ofstream& out, int depth = 
     out << indent << "  MaxCorner: " << boundingBox.maxCorner << "\n";
 
     // Print points in the node's grid
-    for (int i = 0; i < pointGrid.size(); ++i) {
-        if (pointGridOccupied[i]) {
-            out << indent << "    Point(" << i << "): " << pointGrid[i] << "\n";
-        }
+    for (const auto& points : pointGridMap) {
+        std::cout << "\tPoint (" << points.first <<"):" << points.second << std::endl;
     }
 
     // Recurse into children

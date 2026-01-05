@@ -27,11 +27,8 @@ private:
     /** Bounding box of the MNO node*/
     BoundingBox boundingBox;
 
-    /** Point grid points of the MNO node*/
-    std::array<Point3D, GRID_CELL_COUNT> pointGrid; // Will be deprecated
-
     /** Point grid occupation array */
-    std::array<bool, GRID_CELL_COUNT> pointGridOccupied{}; // Will be deprecated
+    std::unordered_map<int, Point3D> pointGridMap = {};
 
     /** Point buffer for the MNO node*/
     //std::array<Point3D, NODE_POINT_BUFFER> pointBuffer; // Need to insert...
@@ -133,11 +130,29 @@ public:
         int maxDepth, 
         const std::string& fileName
     ) const;
+
+    /**
+    * Compiles MNO into binary object to be used in JS/Emscripten interface
+    * The method returns bounding box and poitns
+    *
+    * @param camera The camera object representing the current scene
+    * @param maxDepth The maximum depth to traverse into the MNO
+    * @param minPixelSize The minimum pixel size for MNO node to display
+    */
     void* serializeForR3F(
         const Camera c, 
         int maxDepth,
         float minPixelSize
     ) const;
+
+    /**
+    * Compiles MNO into binary object to be used in JS/Emscripten interface
+    * This method does not return bounding box, only points
+    *
+    * @param camera The camera object representing the current scene
+    * @param maxDepth The maximum depth to traverse into the MNO
+    * @param minPixelSize The minimum pixel size for MNO node to display
+    */
     void* serializeForR3F2(
         const Camera c, 
         int maxDepth,
