@@ -8,7 +8,7 @@
  * @brief Camera Struct Definitions
  * */
 
-Camera::Camera(
+Camera::Camera( 
     const Matrix4x4& viewMatrixInverse_,
     const Matrix4x4& projection_,
     float screenWidth_,
@@ -66,8 +66,13 @@ void Camera::setProjectionMatrix(
     projection[3][1] = pm42;
     projection[3][2] = pm43;
     projection[3][3] = pm44;
-    
     projection[0][0] = 1.30322537284/vppr; //correct Three.js glitch
+}
+
+void Camera::setProjectionViewMatrix() {
+
+    projectionViewMatrix = projection * viewMatrixInverse;
+    
 }
 
 
@@ -141,7 +146,7 @@ Point3D::Point3D(
 
 Point3D& Point3D::toNDC(const Camera& c) {
     
-    *this = c.projection*(c.viewMatrixInverse*(*this));
+    *this = c.projectionViewMatrix*(*this);
     
     return *this;
 
@@ -329,7 +334,11 @@ std::ostream& operator<<(
 BoundingBox::BoundingBox(
     const Point3D& minCorner_, 
     const Point3D& maxCorner_
-) : minCorner(minCorner_), maxCorner(maxCorner_) {}
+) : minCorner(minCorner_), maxCorner(maxCorner_) {
+
+    center = (minCorner_+maxCorner_)/2;
+
+}
 
 bool BoundingBox::containsPoint(const Point3D& p) const {
 
@@ -358,6 +367,8 @@ bool BoundingBox::inCameraFrustum(const Camera& c) const {
 
 /** 
  * INCOMPLETE FUNCTION, NEED TO UPDATE
+ * 
+
 bool BoundingBox::inCameraFrustum(const Camera& c) const { 
     std::array<Point3D, 8> cornersNDC = getCornersNDC(c);
 
@@ -388,7 +399,7 @@ float BoundingBox::getScreenProjectedSize(const Camera& c) const {
 
 Point3D BoundingBox::getCenter() const {
     
-    return (minCorner+maxCorner)/2;
+    return center;
 
 }
 

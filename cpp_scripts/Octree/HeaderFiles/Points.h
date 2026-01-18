@@ -11,6 +11,8 @@
  * @note I fix this by manually setting the first element of projection matrix based on tan(fov/2)
  * */
 struct Camera {
+    /** Product of projection matrix and view matrix -> NDC*/
+    Matrix4x4 projectionViewMatrix;
 
     /** Inverse of Camera view matrix (worldToCamera)*/
     Matrix4x4 viewMatrixInverse;
@@ -48,6 +50,8 @@ struct Camera {
         float pm41, float pm42, float pm43, float pm44, 
         float vppr
     );
+
+    void setProjectionViewMatrix();
 
 };
 
@@ -240,6 +244,9 @@ struct BoundingBox {
 
     /** The major/maximal corner of the cube */
     Point3D maxCorner;
+
+    /** The major/maximal corner of the cube */
+    Point3D center;
 
     /**
      * @brief Constructs an Axis-aligned bounding box (AABB) from two points

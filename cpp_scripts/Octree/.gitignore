@@ -1,3 +1,9 @@
+.vs
+Octree/.vs/
+*.sln
+../*.vcxproj
+../*.filters
+../*.users
 .vscode
 build
-OutputFiles
+assets

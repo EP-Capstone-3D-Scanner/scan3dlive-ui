@@ -92,14 +92,14 @@ public:
     void compileTree(std::vector<float>& out, int currentDepth, int maxDepth) const;
     void compileR3FTree(
         std::vector<float>& out, 
-        const Camera c, 
+        const Camera& c, 
         int currentDepth, 
         int maxDepth,
         float minPixelSize
     ) const;
     void compileR3FTree2(
         std::vector<float>& out, 
-        const Camera c, 
+        const Camera& c, 
         int currentDepth, 
         int maxDepth,
         float minPixelSize
@@ -140,7 +140,7 @@ public:
     * @param minPixelSize The minimum pixel size for MNO node to display
     */
     void* serializeForR3F(
-        const Camera c, 
+        const Camera& c, 
         int maxDepth,
         float minPixelSize
     ) const;
@@ -154,7 +154,7 @@ public:
     * @param minPixelSize The minimum pixel size for MNO node to display
     */
     void* serializeForR3F2(
-        const Camera c, 
+        const Camera& c, 
         int maxDepth,
         float minPixelSize
     ) const;

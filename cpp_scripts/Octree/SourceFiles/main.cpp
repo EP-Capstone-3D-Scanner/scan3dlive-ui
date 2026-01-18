@@ -59,7 +59,7 @@ int main() {
     ModifiableNestedOctree root(root_tl, root_br);
     
     
-    std::ifstream file("../OutputFiles/OctreeTestPoints.csv");
+    std::ifstream file("../assets/OctreeTestPoints.csv");
     if (!file.is_open()) {
         std::cerr << "Failed to open OctreeTestPoints.csv\n";
         return 1;
@@ -77,13 +77,13 @@ int main() {
         Point3D p;
 
         std::getline(ss, token, ',');
-        p.x = std::stod(token);
+        p.x = (float) std::stod(token);
 
         std::getline(ss, token, ',');
-        p.y = std::stod(token);
+        p.y = (float) std::stod(token);
 
         std::getline(ss, token, ',');
-        p.z = std::stod(token);
+        p.z = (float) std::stod(token);
 
         points.push_back(p);
     }
@@ -95,7 +95,8 @@ int main() {
     for (const auto& p : points) {
         root.insertPoint(p);
     }
-    root.printNode();
+    
+    //root.printNode();
 
     /*
     for (int i = 0; i< 11;i++) {

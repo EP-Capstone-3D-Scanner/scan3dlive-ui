@@ -15,12 +15,19 @@
 
 ModifiableNestedOctree::ModifiableNestedOctree(
     const BoundingBox& boundingBox_
-): boundingBox(boundingBox_) {id=NODE_ID++;}
+): boundingBox(boundingBox_) 
+{
+    pointGridMap.reserve(GRID_CELL_COUNT);
+    id=NODE_ID++;
+}
 
 ModifiableNestedOctree::ModifiableNestedOctree(
     const Point3D& minCorner_, 
     const Point3D& maxCorner_
-): boundingBox(minCorner_, maxCorner_) {id=NODE_ID++;}
+): boundingBox(minCorner_, maxCorner_) {
+    pointGridMap.reserve(GRID_CELL_COUNT);
+    id=NODE_ID++;
+}
 
 void ModifiableNestedOctree::insertPoint(const Point3D& point) {
 
@@ -33,7 +40,7 @@ void ModifiableNestedOctree::insertPoint(const Point3D& point) {
     bool insertedPoint = false;
 
     while (!insertedPoint) {
-        const Point3D center = current->boundingBox.getCenter();
+        const Point3D center = current->boundingBox.center;
         double relX = (point.x - current->boundingBox.minCorner.x) 
             / (current->boundingBox.maxCorner.x - current->boundingBox.minCorner.x);
         double relY = (point.y - current->boundingBox.minCorner.y) 
@@ -42,9 +49,9 @@ void ModifiableNestedOctree::insertPoint(const Point3D& point) {
             / (current->boundingBox.maxCorner.z - current->boundingBox.minCorner.z);
 
         // Clamp to [0,1] to prevent out-of-bounds
-        relX = std::min(1.0, std::max(0.0, relX));
-        relY = std::min(1.0, std::max(0.0, relY));
-        relZ = std::min(1.0, std::max(0.0, relZ));
+        relX = (float) std::min(1.0, std::max(0.0, relX));
+        relY = (float) std::min(1.0, std::max(0.0, relY));
+        relZ = (float) std::min(1.0, std::max(0.0, relZ));
 
         // Map to grid index [0, GRID_LENGTH-1]
         int gridCoordX = std::min(GRID_LENGTH-1, 
@@ -83,7 +90,7 @@ ModifiableNestedOctree* ModifiableNestedOctree::createChild(int childIndex) {
         return children[childIndex].get();
     }
 
-    const Point3D center = boundingBox.getCenter();
+    const Point3D center = boundingBox.center;
 
     Point3D min = boundingBox.minCorner;
     Point3D max = boundingBox.maxCorner;
@@ -140,7 +147,7 @@ void ModifiableNestedOctree::compileTree(
 /*Need to cleanup this function*/
 void ModifiableNestedOctree::compileR3FTree(
     std::vector<float>& out, 
-    const Camera c,
+    const Camera& c,
     int depth,
     int maxDepth,
     float minPixelSize
@@ -188,7 +195,7 @@ void ModifiableNestedOctree::compileR3FTree(
 /*Need to cleanup this function*/
 void ModifiableNestedOctree::compileR3FTree2(
     std::vector<float>& out, 
-    const Camera c,
+    const Camera& c,
     int depth,
     int maxDepth,
     float minPixelSize
@@ -218,7 +225,7 @@ void ModifiableNestedOctree::compileR3FTree2(
 }
 
 void* ModifiableNestedOctree::serializeForR3F(
-    const Camera c, 
+    const Camera& c, 
     int maxDepth, 
     float minPixelSize
 ) const {
@@ -239,13 +246,14 @@ void* ModifiableNestedOctree::serializeForR3F(
 }
 
 void* ModifiableNestedOctree::serializeForR3F2(
-    const Camera c, 
+    const Camera& c, 
     int maxDepth, 
     float minPixelSize
 ) const {
     
     std::vector<float> positions;
     positions.reserve(POINT_COUNT*3);
+
     compileR3FTree2(positions, c, 0, maxDepth, minPixelSize);
 
     uint32_t payloadBytes = positions.size() * sizeof(float);

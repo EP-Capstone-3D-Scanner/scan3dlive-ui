@@ -9,6 +9,7 @@
 #include <emscripten/emscripten.h>
 
 // emcc SourceFiles/EmscriptenMain.cpp SourceFiles/ModifiableNestedOctree.cpp SourceFiles/Points.cpp -I HeaderFiles -o OctreeModuleCamTest.js -sEXPORT_ES6 -sEXPORTED_FUNCTIONS=_malloc,_free -sEXPORTED_RUNTIME_METHODS=HEAPF32,HEAPU32 -sINITIAL_MEMORY=64MB
+const int POINT_COUNT_MAX = 75000;
 
 Point3D root_tl = {-1, -6, -1};
 Point3D root_br = {15, 4, 5};
@@ -28,30 +29,11 @@ Matrix4x4 projection = {{
     {{0, 0, -1, 0}}
 }};
 
-Matrix4x4 Identity = {{
-    {{1, 2, 0, 0}}, 
-    {{0, 1, 0, 0}}, 
-    {{0, 0, 1, 0}}, 
-    {{0, 0, 0, 1}}
-}};
-
 Camera c = {worldToCamera, projection, 1280, 161.0500030517578};
 ModifiableNestedOctree root(root_tl, root_br);
-BoundingBox bb = root.getBoundingBox();
-std::array<Point3D, 8> bbNDC = bb.getCorners();
 
 
 extern "C" {
-
-    EMSCRIPTEN_KEEPALIVE
-    void printCorners() {
-        for (Point3D corner : bbNDC) {
-            std::cout<< "(screenX,screenY) = " 
-            << corner.getScreenCoordinates(c) 
-            << std::endl; 
-        }
-        std::cout << "Size:" << bb.getScreenProjectedSize(c) << std::endl;
-    };
 
     EMSCRIPTEN_KEEPALIVE
     void updateOctreeCamera(
@@ -84,6 +66,8 @@ extern "C" {
             pm41, pm42, pm43, pm44, 
             vppr
         );
+
+        c.setProjectionViewMatrix();
         //printMatrix4x4(c.projection);
     
     }
@@ -93,7 +77,6 @@ extern "C" {
         const float * dataPtr, 
         const int pointCount
     ) {
-        
         std::cout << "[EMSCRIPTEN]: Inserting Points Start" << std::endl;
         for(int i = 0; i < pointCount*3; i+=3) {
             Point3D dataPoint = {*(dataPtr+i), *(dataPtr+i+1), *(dataPtr+i+2)};
