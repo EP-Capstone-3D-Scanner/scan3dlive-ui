@@ -7,33 +7,34 @@
 
 #web_app {
   overflow: hidden;
+  height: 100vh;
   display:block;
 }
 
-
-
 #Navigator {
-  height: 6%;
+  top: 0%;
+  height: 2em;
   margin-bottom:0 !important;
+
+  .dropdown-toggle {
+    height: 75%;           
+    display: flex;
+    align-items: center;    
+    border-radius: 4px;
+    width:auto;
+  }
+
+  .dropdown-toggle::after {
+    display: none !important;
+  }
+
+  .dropdown-item {
+    color: white;
+    background-color: #2b2f32;
+    font-size: 0.8rem;
+  }
 }
 
-#Navigator .dropdown-toggle {
-  height: 75%;           
-  display: flex;
-  align-items: center;    
-  border-radius: 4px;
-  width:auto;
-}
-
-#Navigator .dropdown-toggle::after {
-  display: none !important;
-}
-
-#Navigator .dropdown-item {
-  color: white;
-  background-color: #2b2f32;
-  font-size: 0.8rem;
-}
 
 /*Dropdown Menu Popper Colors*/
 #Navigator .dropdown-menu[data-bs-popper] {
@@ -69,10 +70,10 @@ a.dropdown-toggle.nav-link[role="button"][href="#"][tabindex="0"]:focus {
 }
 
 
-
+/* Web App CSS Control*/
 #web_app_container {
   width:100%;
-  height:94%;
+  height:100%;
   display:block;
   position:relative;
 }
@@ -81,16 +82,17 @@ a.dropdown-toggle.nav-link[role="button"][href="#"][tabindex="0"]:focus {
 
 /* Sidebar CSS Control*/
 #Sidebar {
-  width: 20vw;
+  width: 15vw;
+  max-width: 500px;
   height:100%;
   border-color: #494f54;
   transition:right 0.3s ease;
   z-index:1000;
-  right:0px;
+  right:0%;
 }
 
 #Sidebar.close {
-  right: -300px;
+  right: -100%;
 }
 
 /* Base tab button styling */
@@ -124,7 +126,6 @@ a.dropdown-toggle.nav-link[role="button"][href="#"][tabindex="0"]:focus {
   background-color: #212529;
   border:none;
   border-radius:4px;
-  margin-right: 5px;
   color: rgba(255, 255, 255, 0.55);
   width:2rem;
   font-weight: bold;
@@ -137,12 +138,30 @@ a.dropdown-toggle.nav-link[role="button"][href="#"][tabindex="0"]:focus {
 .Sidebar-annotation-item {
   background-color: #2b2f32;
   color:white;
-  border-color: #494f54;
   border-right:none;
   border-left:none;
   font-size: 0.8rem;
   height:2rem;
 }
+
+/* Toolbar Display */
+#web_app > #Toolbar {
+  height: 2.5em;
+  background-color: #303538;
+  border-top: 1px dotted #51585e;
+  margin-bottom:0 !important;
+}
+
+/* Footer Display */
+#web_app > #Footer {
+  min-height: 1.5em;
+  height: 1em;
+  border-top: 1px dotted #6c757d;
+  margin-bottom:0 !important;
+}
+
+
+
 
 
 /*

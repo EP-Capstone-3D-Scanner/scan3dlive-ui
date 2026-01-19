@@ -12,14 +12,6 @@ function Sidebar({sidebarDisplay, setSidebarDisplay, annotations, setAnnotations
                     Point cloud information will go here...
                 </Tab>
                 <Tab eventKey="edit" title="Edit">
-                    <ListGroup className="w-100">
-                        {Array.from(annotations.entries()).map(([id, annotation]) => (
-                            <ListGroup.Item key={id} className="Sidebar-annotation-item d-flex me-auto w-100 align-items-center">
-                                {`Object ${annotation.label}`}
-                                {/*<Form.Control size="sm w-50 h-25 bg-dark border-none" type="text" placeholder="Large text" />*/}
-                            </ListGroup.Item>
-                        ))}
-                    </ListGroup>
                 </Tab>
             </Tabs>
         </div>
@@ -27,3 +19,14 @@ function Sidebar({sidebarDisplay, setSidebarDisplay, annotations, setAnnotations
 }
 
 export default Sidebar;
+
+/*
+<ListGroup className="w-100">
+{Array.from(annotations.entries()).map(([id, annotation]) => (
+<ListGroup.Item key={id} className="Sidebar-annotation-item d-flex me-auto w-100 align-items-center">
+{`Object ${annotation.label}`}
+{/*<Form.Control size="sm w-50 h-25 bg-dark border-none" type="text" placeholder="Large text" />
+</ListGroup.Item>
+))}
+</ListGroup>
+*/

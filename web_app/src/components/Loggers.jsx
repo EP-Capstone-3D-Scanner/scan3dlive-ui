@@ -3,25 +3,7 @@ import * as THREE from 'three';
 import { useState , useEffect , useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber'
 
-/*
-function AnimatedBox() {
-    const boxRef = useRef();
 
-    useFrame(()=>{
-      boxRef.current.rotation.x+=0.01;
-      boxRef.current.rotation.y+=0.01;
-      boxRef.current.rotation.z+=0.01;
-    })
-  
-    return (
-      <mesh ref={boxRef} position={[0, 0 , 0]}>
-        <torusKnotGeometry args={[1.7, 0.3, 256, 256]}></torusKnotGeometry>
-        <meshToonMaterial color={0x00bfff}></meshToonMaterial>
-      </mesh>
-    )
-  }
-  <AnimatedBox></AnimatedBox>
-*/
 /*<Loggers.BoundingBox min={[-5, -5, -5]} max={[5, 5, 5]} />*/
 
 export function CameraLogger() {
@@ -30,8 +12,6 @@ export function CameraLogger() {
   camera.updateProjectionMatrix();
   useEffect(() => {
     console.log('Camera object:', camera);
-    //console.log('Camera position:', camera.position);
-    //console.log('Camera rotation:', camera.rotation);
   }, [camera]);
 
   return null;

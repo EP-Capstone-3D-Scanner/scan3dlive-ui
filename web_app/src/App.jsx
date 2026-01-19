@@ -1,9 +1,10 @@
-import { useState} from 'react'
-import './App.css';
+import { useState } from 'react'
 import Canvas3D from './components/Canvas3D';
 import Navigator from './components/Navigator';
 import Sidebar from './components/Sidebar';
-
+import Footer from './components/Footer'
+import Toolbar from './components/Toolbar'
+import './App.css';
 
 function App() {
   const [sidebarDisplay, setSidebarDisplay] = useState(false);
@@ -11,9 +12,14 @@ function App() {
   const [annotations, setAnnotations] = useState(new Map());
 
   return (
-    <div id="web_app" class="vh-100">
-      <Navigator sidebarDisplay={sidebarDisplay} setSidebarDisplay={setSidebarDisplay}></Navigator>
-      <div id="web_app_container">
+    <div id="web_app" className="d-flex flex-column min-vh-100">
+      <Navigator 
+        sidebarDisplay={sidebarDisplay} 
+        setSidebarDisplay={setSidebarDisplay}>
+      </Navigator>
+      <Toolbar></Toolbar>
+  
+      <div id="web_app_container" className="d-flex flex-row flex-grow-1 overflow-hidden">
         <Canvas3D 
           selectedModel={selectedModel} 
           setSelectedModel={setSelectedModel}
@@ -27,6 +33,8 @@ function App() {
           setAnnotations={setAnnotations}>
         </Sidebar>
       </div>
+
+      <Footer></Footer>
     </div>
   )
 }

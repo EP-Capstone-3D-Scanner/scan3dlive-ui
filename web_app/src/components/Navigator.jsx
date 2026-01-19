@@ -4,12 +4,12 @@ import NavDropdown from 'react-bootstrap/NavDropdown';
 import Nav from 'react-bootstrap/Nav';
 
 const Navigator = ({sidebarDisplay, setSidebarDisplay}) => {
-{/*<Navbar.Brand className = "ms-0"> <p class="h3 fw-bold text-white">Point Cloud Viewer</p></Navbar.Brand>*/}   
     return (
         <Navbar id="Navigator" bg="dark" variant="dark" expand="lg" className="w-100 p-0 d-flex align-items-center">
-            <Navbar.Collapse className="me-auto h-100 p-0 d-flex align-items-center">
-                <Nav className="me-auto h-100 p-0 d-flex align-items-center">
-                    <NavDropdown title="File" className="me-auto h-100 d-flex align-items-center">
+            <Navbar.Collapse className="me-auto h-100 d-flex align-items-center">
+                <Nav className="me-auto h-100 w-100 p-0 d-flex flex-row align-items-center">
+                    
+                    <NavDropdown title="File" className="h-100 d-flex align-items-center">
                         <NavDropdown.Item>New</NavDropdown.Item>
                         <NavDropdown.Item>Open</NavDropdown.Item>
                         <NavDropdown.Divider/>
@@ -22,7 +22,7 @@ const Navigator = ({sidebarDisplay, setSidebarDisplay}) => {
                         <NavDropdown.Item>Close</NavDropdown.Item>
                     </NavDropdown>
 
-                    <NavDropdown title="Edit" className="me-auto h-100 d-flex align-items-center">
+                    <NavDropdown title="Edit" className="h-100 d-flex align-items-center">
                         <NavDropdown.Item>Undo</NavDropdown.Item>
                         <NavDropdown.Item>Redo</NavDropdown.Item>
                         <NavDropdown.Divider/>
@@ -33,7 +33,7 @@ const Navigator = ({sidebarDisplay, setSidebarDisplay}) => {
                         <NavDropdown.Item>Segment</NavDropdown.Item>
                     </NavDropdown>
 
-                    <NavDropdown title="View" className="me-auto h-100 d-flex align-items-center">
+                    <NavDropdown title="View" className="h-100 d-flex align-items-center">
                         <NavDropdown.Item>Format</NavDropdown.Item>
                         <NavDropdown.Divider/>
                         <NavDropdown.Item>Grid</NavDropdown.Item>
@@ -44,18 +44,19 @@ const Navigator = ({sidebarDisplay, setSidebarDisplay}) => {
                         <NavDropdown.Item>Appearance</NavDropdown.Item>
                     </NavDropdown>
 
-                    <NavDropdown title="Network" className="me-auto h-100 d-flex align-items-center">
+                    <NavDropdown title="Network" className="h-100 d-flex align-items-center">
                         <NavDropdown.Item>Connect to Scanner</NavDropdown.Item>
                         <NavDropdown.Divider/>
                         <NavDropdown.Item>Start Scanner</NavDropdown.Item>
                         <NavDropdown.Item>Stop Scanner</NavDropdown.Item>
                     </NavDropdown>
+                    <button 
+                        className="Sidebar-toggle-button ms-auto h-100" 
+                        onClick={()=>{setSidebarDisplay(!sidebarDisplay);}}>
+                        ◥
+                    </button>
                 </Nav>
             </Navbar.Collapse>
-            
-            <button className="Sidebar-toggle-button ms-auto h-100" onClick={()=>{setSidebarDisplay(!sidebarDisplay);}}>
-            ◥ 
-            </button>
         </Navbar> 
     )
 };
