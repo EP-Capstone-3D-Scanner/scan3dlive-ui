@@ -33,25 +33,34 @@
     background-color: #2b2f32;
     font-size: 0.8rem;
   }
+
+  .scanner-badge {
+    color: rgb(179, 0, 0);
+    font-weight: normal;
+    background-color: #ff8d8d !important;
+  }
 }
 
-
-/*Dropdown Menu Popper Colors*/
-#Navigator .dropdown-menu[data-bs-popper] {
+#Navigator .dropdown-menu[data-bs-popper] { /*Dropdown Menu Popper Colors*/
   border-color:#6c757d;
   margin: -2px !important;
   padding: 0 !important;
   width: 15rem;
+
+  .dropdown-item:hover, /*Dropdown Menu Popper Colors On Mouse Hover*/
+  .dropdown-item:focus {
+    background-color: #767b80;
+  }
 }
 
-/*Dropdown Menu Popper Colors On Mouse Hover*/
-#Navigator .dropdown-menu[data-bs-popper] .dropdown-item:hover,
-#Navigator .dropdown-menu[data-bs-popper] .dropdown-item:focus {
-  background-color: #767b80;
+/*Dropdown Dividers Between BUttons*/
+#Navigator .dropdown-menu .dropdown-divider {
+  border-top: 0.75px solid #6c757d;
+  margin: 0; 
+  height: 0;      
 }
 
-/*Dropdown Button Colors*/
-a.dropdown-toggle.nav-link[role="button"][href="#"][tabindex="0"] {
+a.dropdown-toggle.nav-link[role="button"][href="#"][tabindex="0"] { /*Dropdown Button Colors*/
   font-size: 0.9rem;
   margin-bottom:0;
 }
@@ -62,14 +71,6 @@ a.dropdown-toggle.nav-link[role="button"][href="#"][tabindex="0"]:focus {
   background-color: #494f54;
 }
 
-/*Dropdown Dividers Between BUttons*/
-#Navigator .dropdown-menu .dropdown-divider {
-  border-top: 0.75px solid #6c757d;
-  margin: 0; 
-  height: 0;      
-}
-
-
 /* Web App CSS Control*/
 #web_app_container {
   width:100%;
@@ -78,11 +79,9 @@ a.dropdown-toggle.nav-link[role="button"][href="#"][tabindex="0"]:focus {
   position:relative;
 }
 
-
-
 /* Sidebar CSS Control*/
 #Sidebar {
-  width: 15vw;
+  width: 20vw;
   max-width: 500px;
   height:100%;
   border-color: #494f54;
@@ -95,8 +94,8 @@ a.dropdown-toggle.nav-link[role="button"][href="#"][tabindex="0"]:focus {
   right: -100%;
 }
 
-/* Base tab button styling */
-#Sidebar .Sidebar-tab .nav-link {
+
+#Sidebar .Sidebar-tab .nav-link { /* Base tab button styling */
   background-color: #000;
   color: white;
   border-radius: 0;
@@ -105,20 +104,17 @@ a.dropdown-toggle.nav-link[role="button"][href="#"][tabindex="0"]:focus {
   transition: background-color 0.15s ease-in-out;
 }
 
-/* Hover state */
-#Sidebar .Sidebar-tab .nav-link:hover {
+#Sidebar .Sidebar-tab .nav-link:hover { /* Hover state */
   background-color: #212529;
 }
 
-/* Active tab */
-#Sidebar .Sidebar-tab .nav-link.active {
+#Sidebar .Sidebar-tab .nav-link.active { /* Active tab */
   background-color: #212529;
   color: white;
   border-bottom-color: transparent; /* prevents flickering */
 }
 
-/* Remove Bootstrap's default white underline */
-#Sidebar .nav-tabs {
+#Sidebar .nav-tabs { /* Remove Bootstrap's default white underline */
   border-bottom: none;
 }
 
@@ -126,7 +122,7 @@ a.dropdown-toggle.nav-link[role="button"][href="#"][tabindex="0"]:focus {
   background-color: #212529;
   border:none;
   border-radius:4px;
-  color: rgba(255, 255, 255, 0.55);
+  color: #ffffff8c;
   width:2rem;
   font-weight: bold;
 }
@@ -144,18 +140,35 @@ a.dropdown-toggle.nav-link[role="button"][href="#"][tabindex="0"]:focus {
   height:2rem;
 }
 
+
 /* Toolbar Display */
 #web_app > #Toolbar {
-  height: 2.5em;
-  background-color: #303538;
-  border-top: 1px dotted #51585e;
+  height: 2.5rem;
+  background-color: #212529; /*#303538*/
+  border-top: 1px solid #51585e;
+  padding:2px;
   margin-bottom:0 !important;
+}
+
+/* ToolbarButton Display */
+.ToolbarButton {
+  background: none;
+  border: none;
+  border-radius:4px;
+  padding: 3px;
+  img {
+    width:1.2rem;
+    height:1.2rem;
+  }
+}
+
+.ToolbarButton:hover {
+  background:  #626b70;
 }
 
 /* Footer Display */
 #web_app > #Footer {
-  min-height: 1.5em;
-  height: 1em;
+  height: 1.2em;
   border-top: 1px dotted #6c757d;
   margin-bottom:0 !important;
 }
