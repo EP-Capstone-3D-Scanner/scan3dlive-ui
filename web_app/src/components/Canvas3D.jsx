@@ -1,7 +1,7 @@
 import React from 'react';
 import { useState , useEffect , useMemo , useRef} from 'react';
 import { Canvas, useLoader} from '@react-three/fiber'
-import { OrbitControls, Html } from '@react-three/drei'
+import { Environment , OrbitControls, Html } from '@react-three/drei'
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js'
 import OctreeTest from './OctreeTest'
 import * as Loggers from './Loggers'
@@ -51,8 +51,9 @@ function Canvas3D({
   return (
     <div id="Canvas3D" className="w-100">
       <Canvas frameloop="demand" camera={{near:0.0001, far:1000, position:[0, 1.5, 12]}}>
+        {/*<Environment preset="city" background />*/}
         <gridHelper args = {[10]}></gridHelper>
-        <OrbitControls/>
+        <OrbitControls/> {/*autoRotate*/}
         <ambientLight intensity={1}/>
         <directionalLight position={[5,5,5]}/>
         {/*<OctreeTest position={[0, 0, 0]} rotation={[0, 0, 0]} url={binaryFile} />*/}
