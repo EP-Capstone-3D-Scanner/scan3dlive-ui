@@ -1,11 +1,12 @@
 import React from 'react';
 import Navbar from 'react-bootstrap/Navbar';
+import Badge from 'react-bootstrap/Badge';
 import NavDropdown from 'react-bootstrap/NavDropdown';
 import Nav from 'react-bootstrap/Nav';
 
-const Navigator = ({sidebarDisplay, setSidebarDisplay}) => {
+const Navigator = () => {
     return (
-        <Navbar id="Navigator" bg="dark" variant="dark" expand="lg" className="w-100 p-0 d-flex align-items-center">
+        <Navbar id="Navigator" bg="dark" variant="dark" expand="lg" className="w-100 ps-1 pt-0 pe-0 pb-0 d-flex align-items-center">
             <Navbar.Collapse className="me-auto h-100 d-flex align-items-center">
                 <Nav className="me-auto h-100 w-100 p-0 d-flex flex-row align-items-center">
                     
@@ -50,12 +51,8 @@ const Navigator = ({sidebarDisplay, setSidebarDisplay}) => {
                         <NavDropdown.Item>Start Scanner</NavDropdown.Item>
                         <NavDropdown.Item>Stop Scanner</NavDropdown.Item>
                     </NavDropdown>
-                    <button 
-                        className="Sidebar-toggle-button ms-auto h-100" 
-                        onClick={()=>{setSidebarDisplay(!sidebarDisplay);}}>
-                        ◥
-                    </button>
                 </Nav>
+                <Badge className="me-2 scanner-badge">Scanner Offline</Badge>
             </Navbar.Collapse>
         </Navbar> 
     )
