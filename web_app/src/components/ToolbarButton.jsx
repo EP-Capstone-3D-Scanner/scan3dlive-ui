@@ -1,7 +1,7 @@
-const ToolbarButton = ({icon, title}) => {
+const ToolbarButton = ({icon, title, setSidebarDisplay}) => {
     return (
         <div className="d-flex align-items-center h-100 me-1">
-            <button title={title} className="ToolbarButton d-flex align-items-center">
+            <button onClick={()=>{setSidebarDisplay(true);}} title={title} className="ToolbarButton d-flex align-items-center">
                 <img src={`icons\\${icon}`}></img>
             </button>
         </div>
