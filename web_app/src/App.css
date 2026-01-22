@@ -94,7 +94,6 @@ a.dropdown-toggle.nav-link[role="button"][href="#"][tabindex="0"]:focus {
   right: -100%;
 }
 
-
 #Sidebar .Sidebar-tab .nav-link { /* Base tab button styling */
   background-color: #000;
   color: white;

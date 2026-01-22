@@ -11,6 +11,20 @@ import './App.css';
 function App() {
   const [sidebarDisplay, setSidebarDisplay] = useState(false);
   const [selectedModel, setSelectedModel] = useState(null);
+  const [clips, setClips] = useState({
+    0:{type:"Cube", position:[1, 1, 1], rotation:160, size:100}, 
+    1:{type:"Cube", position:[1, 1, 1], rotation:16, size:100},
+    2:{type:"Cube", position:[1, 1, 1], rotation:16, size:100},
+    3:{type:"Cube", position:[1, 1, 1], rotation:16, size:100},
+    4:{type:"Cube", position:[1, 1, 1], rotation:16, size:100},
+    5:{type:"Cube", position:[1, 1, 1], rotation:16, size:100},
+    6:{type:"Cube", position:[1, 1, 1], rotation:16, size:100},
+    7:{type:"Cube", position:[1, 1, 1], rotation:16, size:100},
+    8:{type:"Cube", position:[1, 1, 1], rotation:16, size:100},
+    9:{type:"Cube", position:[1, 1, 1], rotation:16, size:100},
+    10:{type:"Cube", position:[1, 1, 1], rotation:16, size:100},
+  });
+  const [cameraFOV, setCameraFOV] = useState(75);
   const [annotations, setAnnotations] = useState(new Map());
 
   return (
@@ -30,10 +44,9 @@ function App() {
           setAnnotations={setAnnotations}> 
         </Canvas3D>
         <Sidebar 
-          sidebarDisplay={sidebarDisplay} 
-          setSidebarDisplay={setSidebarDisplay}
-          annotations={annotations}
-          setAnnotations={setAnnotations}>
+          sidebarDisplay={sidebarDisplay}
+          clips={clips}
+          setSelectedClips={setClips}>
         </Sidebar>
       </div>
 
