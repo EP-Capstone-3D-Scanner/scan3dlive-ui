@@ -168,12 +168,19 @@ a.dropdown-toggle.nav-link[role="button"][href="#"][tabindex="0"]:focus {
 /* Footer Display */
 #web_app > #Footer {
   height: 1.2em;
+  width:100%;
   border-top: 1px dotted #6c757d;
   margin-bottom:0 !important;
 }
 
+#web_app > #Footer > .footer-button {
+  border-radius:0;
+  font-size:0.7em;
+}
 
-
+#web_app > #Footer > .footer-button:hover {
+  background: #3b4245;
+}
 
 
 /*
