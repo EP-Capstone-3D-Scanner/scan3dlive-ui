@@ -39,18 +39,37 @@ function Model({
   );
 }
 
+let invalidateRef = null
+let cameraRef = null
+
+export function invalidateCanvas() {
+  invalidateRef?.()
+}
+
+export function getCamera() {
+  return cameraRef
+}
+
 function Canvas3D({
   annotations, 
   setAnnotations, 
   selectedModel, 
-  setSelectedModel
+  setSelectedModel,
+  cameraFOVRef
 }) {
 
   const binaryFile = "point_clouds/octree_bin10.bin";
 
   return (
     <div id="Canvas3D" className="w-100">
-      <Canvas frameloop="demand" camera={{near:0.0001, far:1000, position:[0, 1.5, 12]}}>
+      <Canvas 
+        frameloop="demand" 
+        onCreated={(state) => {
+          invalidateRef = state.invalidate
+          cameraRef = state.camera
+        }}
+        camera={{fov:cameraFOVRef.current, near:0.0001, far:1000, position:[0, 1.5, 12]}}
+      >
         {/*<Environment preset="city" background />*/}
         <gridHelper args = {[10]}></gridHelper>
         <OrbitControls/> {/*autoRotate*/}
