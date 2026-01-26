@@ -7,7 +7,18 @@ import Toolbar from './components/Toolbar'
 import './App.css';
 
 function App() {
-  const [sidebarDisplay, setSidebarDisplay] = useState(false);
+  const [sidebarDisplay, setSidebarDisplay] = useState({
+    'page':'EditViewSelectionsMenu', 
+    'show':false
+  });
+  const [displaySettings, setDisplaySettings] = useState({
+    'gridVisible':true,
+    'skyboxVisible':false,
+    'skyboxPreset':'city',
+    'octreeMaxLOD':1,
+    'backgroundColor':'#000000',
+    'backgroundVisible':false,
+  })
   const [selectedModel, setSelectedModel] = useState(null);
   const [clips, setClips] = useState({
     0:{type:"Cube", position:[1, 1, 1], rotation:160, size:100}, 
@@ -22,20 +33,22 @@ function App() {
     9:{type:"Cube", position:[1, 1, 1], rotation:16, size:100},
     10:{type:"Cube", position:[1, 1, 1], rotation:16, size:100},
   });
-  const cameraFOVRef = useRef(75);
   const [annotations, setAnnotations] = useState(new Map());
-
+  
   return (
     <div 
       id="web_app" 
       className="d-flex flex-column min-vh-100 position-static"
     >
-      <Navigator></Navigator>
+      <Navigator
+        sidebarDisplay={sidebarDisplay} 
+        setSidebarDisplay={setSidebarDisplay}
+      >
+      </Navigator>
       
       <Toolbar
         sidebarDisplay={sidebarDisplay} 
         setSidebarDisplay={setSidebarDisplay}
-        cameraFOVRef={cameraFOVRef}
       >
       </Toolbar>
   
@@ -48,7 +61,8 @@ function App() {
           setSelectedModel={setSelectedModel}
           annotations={annotations}
           setAnnotations={setAnnotations}
-          cameraFOVRef={cameraFOVRef}
+          displaySettings={displaySettings}
+          setDisplaySettings={setDisplaySettings}
         > 
         </Canvas3D>
         
@@ -57,6 +71,8 @@ function App() {
           setSidebarDisplay={setSidebarDisplay}
           clips={clips}
           setSelectedClips={setClips}
+          displaySettings={displaySettings}
+          setDisplaySettings={setDisplaySettings}
         >
         </Sidebar>
       </div>

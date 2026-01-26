@@ -1,9 +1,9 @@
 import ToolbarButton from './ToolbarButton'
 import { invalidateCanvas, getCamera } from './Canvas3D'
 
-const Toolbar = ({sidebarDisplay, setSidebarDisplay, cameraFOVRef}) => {
+const Toolbar = ({sidebarDisplay, setSidebarDisplay}) => {
     const handleClipButtonClick = () => {
-        setSidebarDisplay(true);
+        setSidebarDisplay({'page':'EditSelectionsMenu', 'show':true});
     }
 
     const handleZoomInButtonClick = () => {
@@ -34,7 +34,10 @@ const Toolbar = ({sidebarDisplay, setSidebarDisplay, cameraFOVRef}) => {
             <ToolbarButton onClick={setSidebarDisplay} icon="recycle-bin-icon.svg" title="Delete"></ToolbarButton>
             <button 
                 className="Sidebar-toggle-button ms-auto h-100" 
-                onClick={()=>{setSidebarDisplay(!sidebarDisplay);}}>
+                onClick={()=>{
+                    const showing = sidebarDisplay['show'];
+                    setSidebarDisplay({...sidebarDisplay, 'show':!showing});
+                    }}>
                 ◥
             </button>
         </div>

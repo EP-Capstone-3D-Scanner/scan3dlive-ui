@@ -4,7 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import OctreeManager from '../modules/OctreeModuleCamTest.js'
 
 
-function OctreeTest({ position, rotation, url }) {
+function OctreeTest({ position, rotation, url , displaySettings}) {
   const [OctreeHelper, setOctreeHelper] = useState(null)
   const OctreeGeometry = useRef(new THREE.BufferGeometry())
   const { invalidate, size } = useThree()
@@ -58,7 +58,7 @@ function OctreeTest({ position, rotation, url }) {
     )
 
     const start = performance.now();
-    const dataNodePtr = OctreeHelper._getVisibleOctreeNodes2(10, 50)
+    const dataNodePtr = OctreeHelper._getVisibleOctreeNodes2(displaySettings['octreeMaxLOD'], 50)
     const dataBytes = OctreeHelper.HEAPU32[dataNodePtr >> 2]
     const end = performance.now();
     const elapsedTime = end - start;

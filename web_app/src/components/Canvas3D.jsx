@@ -1,6 +1,7 @@
 import React from 'react';
+import * as THREE from 'three'
 import { useState , useEffect , useMemo , useRef} from 'react';
-import { Canvas, useLoader} from '@react-three/fiber'
+import { Canvas, useLoader, useThree } from '@react-three/fiber'
 import { Environment , OrbitControls, Html } from '@react-three/drei'
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js'
 import OctreeTest from './OctreeTest'
@@ -43,6 +44,7 @@ let invalidateRef = null
 let cameraRef = null
 
 export function invalidateCanvas() {
+  console.log('invalidated')
   invalidateRef?.()
 }
 
@@ -50,35 +52,92 @@ export function getCamera() {
   return cameraRef
 }
 
-function Canvas3D({
-  annotations, 
-  setAnnotations, 
-  selectedModel, 
-  setSelectedModel,
-  cameraFOVRef
-}) {
 
+// Need to combine these components into a single "Background Manager". Also clean up code
+function Skybox({ visible, preset }) {
+
+  useEffect(() => {
+    if (!visible) return;
+    // When mounted, optionally invalidate
+    invalidateCanvas();
+    // Cleanup runs when unmounted
+    return () => {
+      invalidateCanvas(); // force redraw when removed
+    };
+  }, [visible]);
+
+  if (!visible) return null;
+
+  return (
+    <Environment
+      key={preset} // ensures re-mount on preset change
+      preset={preset}
+      background
+      onLoad={() => invalidateCanvas()}
+    />
+  );
+}
+
+const SceneUpdater = ({ displaySettings }) => {
+  const { scene } = useThree();
+
+  useEffect(() => {
+    if(!displaySettings['skyboxVisible']) {
+      scene.background = null;
+    }
+    if(displaySettings['backgroundVisible'] && !displaySettings['skyboxVisible']) {
+      scene.background = new THREE.Color(displaySettings['backgroundColor']);
+    }
+    invalidateCanvas()
+  }, [displaySettings['backgroundColor'], displaySettings['backgroundVisible'], displaySettings['skyboxVisible']]); 
+
+  return null; 
+};
+
+
+function Canvas3D({
+  annotations,
+  setAnnotations,
+  selectedModel,
+  setSelectedModel,
+  displaySettings,
+  setDisplaySettings,
+}) {
   const binaryFile = "point_clouds/octree_bin10.bin";
 
   return (
     <div id="Canvas3D" className="w-100">
-      <Canvas 
-        frameloop="demand" 
+      <Canvas
+        frameloop="demand"
         onCreated={(state) => {
-          invalidateRef = state.invalidate
-          cameraRef = state.camera
+          invalidateRef = state.invalidate;
+          cameraRef = state.camera;
         }}
-        camera={{fov:cameraFOVRef.current, near:0.0001, far:1000, position:[0, 1.5, 12]}}
+        camera={{ fov: 75, near: 0.0001, far: 1000, position: [0, 1.5, 12] }}
       >
-        {/*<Environment preset="city" background />*/}
-        <gridHelper args = {[10]}></gridHelper>
-        <OrbitControls/> {/*autoRotate*/}
-        <ambientLight intensity={1}/>
-        <directionalLight position={[5,5,5]}/>
-        {/*<OctreeTest position={[0, 0, 0]} rotation={[0, 0, 0]} url={binaryFile} />*/}
+        <SceneUpdater 
+          displaySettings={displaySettings} 
+        />
+        <Skybox
+          visible={displaySettings["skyboxVisible"]}
+          preset={displaySettings["skyboxPreset"]}
+        />
+        <gridHelper 
+          visible={displaySettings["gridVisible"]} 
+          args={[10]} 
+        />
+        <OrbitControls />
+        <ambientLight intensity={1} />
+        <directionalLight position={[5, 5, 5]} />
+        <OctreeTest 
+          position={[0, 0, 0]} 
+          rotation={[0, 0, 0]} 
+          url={binaryFile} 
+          displaySettings={displaySettings}
+        />
       </Canvas>
     </div>
-  )
+  );
 }
 
 export default Canvas3D;
