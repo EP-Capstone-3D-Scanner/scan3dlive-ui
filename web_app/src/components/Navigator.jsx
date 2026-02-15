@@ -6,7 +6,7 @@ import Nav from 'react-bootstrap/Nav';
 
 const Navigator = ({sidebarDisplay, setSidebarDisplay}) => {
     const handleFormatButtonClick = () => {
-        setSidebarDisplay({'page':'EditViewSelectionsMenu', 'show':true})
+        setSidebarDisplay(prev => ({...prev, page:'EditViewSelectionsMenu', show:true}));
     }
 
     const toggleFullScreen = () => {
@@ -65,7 +65,9 @@ const Navigator = ({sidebarDisplay, setSidebarDisplay}) => {
                         <NavDropdown.Item>Stop Scanner</NavDropdown.Item>
                     </NavDropdown>
                 </Nav>
-                <Badge className="me-2 scanner-badge">Scanner Offline</Badge>
+                <Badge className={`me-2 scanner-badge-${sidebarDisplay.scannerOnline ? "online" : "offline"}`}>
+                    {sidebarDisplay.scannerOnline ? "Scanner Online" : "Scanner Offline"}
+                </Badge>
             </Navbar.Collapse>
         </Navbar> 
     )

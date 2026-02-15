@@ -34,10 +34,15 @@
     font-size: 0.8rem;
   }
 
-  .scanner-badge {
+  .scanner-badge-offline {
     color: rgb(179, 0, 0);
     font-weight: normal;
     background-color: #ff8d8d !important;
+  }
+  .scanner-badge-online {
+    color: rgb(0, 153, 0);
+    font-weight: normal;
+    background-color: #8dff8d !important;
   }
 }
 

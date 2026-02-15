@@ -1,5 +1,8 @@
+import { useState } from 'react'
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
+import Toast from 'react-bootstrap/Toast';
+import ToastContainer from 'react-bootstrap/ToastContainer';
 
 export function DetailsModal({visibleModal, setVisibleModal}) {
     return (
@@ -41,3 +44,30 @@ export function DetailsModal({visibleModal, setVisibleModal}) {
         </Modal>
     )
 }
+
+export function ScannerConnectionStatusToast() {
+    const [show, setShow] = useState(true);
+    const handleClose = () => setShow(!show);
+
+    return (
+        <div 
+            className="p-0 border border-dark" 
+            style={{ position: 'fixed', "bottom": "1.2em", right: 0, zIndex: 1 }}
+        >
+            <ToastContainer
+                className="p-0"
+                position={"bottom-end"}
+                style={{ zIndex: 1 }}
+            >
+                <Toast onClose={handleClose} show={show}>
+                <Toast.Header>
+                    <strong className="me-auto">Scanner Connection Status</strong>
+                    <small>Just now</small>
+                </Toast.Header>
+                <Toast.Body>The status of the scanner has changed.</Toast.Body>
+            </Toast>
+            </ToastContainer>
+        </div>
+    );
+}
+

@@ -4,11 +4,15 @@ import Navigator from './components/Navigator';
 import Sidebar from './components/Sidebar';
 import Footer from './components/Footer'
 import Toolbar from './components/Toolbar'
+import useWebSocketClient from './components/Websocket';
+import { ScannerConnectionStatusToast } from './components/Modals';
 import './App.css';
 
 function App() {
+  //Need to rename this variable lol (sto fix the showscanner online modal, make other variables more descriptive)
   const [sidebarDisplay, setSidebarDisplay] = useState({
-    'page':'EditViewSelectionsMenu', 
+    'page':'EditViewSelectionsMenu',
+    'scannerOnline':false, 
     'show':false
   });
   const [displaySettings, setDisplaySettings] = useState({
@@ -22,19 +26,10 @@ function App() {
   const [selectedModel, setSelectedModel] = useState(null);
   const [clips, setClips] = useState({
     0:{type:"Cube", position:[1, 1, 1], rotation:160, size:100}, 
-    1:{type:"Cube", position:[1, 1, 1], rotation:16, size:100},
-    2:{type:"Cube", position:[1, 1, 1], rotation:16, size:100},
-    3:{type:"Cube", position:[1, 1, 1], rotation:16, size:100},
-    4:{type:"Cube", position:[1, 1, 1], rotation:16, size:100},
-    5:{type:"Cube", position:[1, 1, 1], rotation:16, size:100},
-    6:{type:"Cube", position:[1, 1, 1], rotation:16, size:100},
-    7:{type:"Cube", position:[1, 1, 1], rotation:16, size:100},
-    8:{type:"Cube", position:[1, 1, 1], rotation:16, size:100},
-    9:{type:"Cube", position:[1, 1, 1], rotation:16, size:100},
-    10:{type:"Cube", position:[1, 1, 1], rotation:16, size:100},
   });
   const [annotations, setAnnotations] = useState(new Map());
   
+  useWebSocketClient({url: "ws://192.168.2.15:8001", setSidebarDisplay: setSidebarDisplay});
   return (
     <div 
       id="web_app" 
@@ -76,7 +71,7 @@ function App() {
         >
         </Sidebar>
       </div>
-
+      <ScannerConnectionStatusToast></ScannerConnectionStatusToast>
       <Footer></Footer>
     </div>
   )

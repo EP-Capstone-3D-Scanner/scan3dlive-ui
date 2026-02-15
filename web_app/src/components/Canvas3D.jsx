@@ -129,12 +129,12 @@ function Canvas3D({
         <OrbitControls />
         <ambientLight intensity={1} />
         <directionalLight position={[5, 5, 5]} />
-        <OctreeTest 
+        {/*<OctreeTest 
           position={[0, 0, 0]} 
           rotation={[0, 0, 0]} 
           url={binaryFile} 
           displaySettings={displaySettings}
-        />
+        />*/}
       </Canvas>
     </div>
   );

@@ -15,7 +15,7 @@ const Footer = ({}) => {
                     overlay={
                         <Tooltip 
                             className="footer-tooltip" 
-                            style={{'font-size':'0.7em', 'margin-bottom':'-0.65em'}}
+                            style={{'fontSize':'0.7em', 'marginBottom':'-0.65em'}}
                         >
                             Project
                         </Tooltip>
@@ -42,7 +42,7 @@ const Footer = ({}) => {
                     overlay={
                         <Tooltip 
                             className="footer-tooltip" 
-                            style={{'font-size':'0.7em', 'margin-bottom':'-0.65em'}}
+                            style={{'fontSize':'0.7em', 'marginBottom':'-0.65em'}}
                         >
                             Units
                         </Tooltip>
@@ -61,14 +61,14 @@ const Footer = ({}) => {
                     overlay={
                         <Tooltip 
                             className="footer-tooltip" 
-                            style={{'font-size':'0.7em', 'margin-bottom':'-0.65em'}}
+                            style={{'fontSize':'0.7em', 'marginBottom':'-0.65em'}}
                         >
                             More Details
                         </Tooltip>
                     }
                 >
                     <Button 
-                        style={{'font-size':'1em'}} 
+                        style={{'fontSize':'1em'}} 
                         className="d-flex flex-column justify-content-center h-100 footer-button" 
                         variant="dark"
                         onClick = {() => setVisibleModal('details')}
