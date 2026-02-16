@@ -3,7 +3,7 @@ import sys
 from websockets.asyncio.client import connect
 
 async def test_client():
-    uri = "ws://localhost:8001"
+    uri = "ws://localhost:8001" #"ws://192.168.2.15:8001"
     try:
         # Connect to the server
         async with connect(uri) as websocket:
