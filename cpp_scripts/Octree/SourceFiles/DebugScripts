@@ -1,0 +1,137 @@
+    /**
+    * Compiles MNO into binary object to be used in JS/Emscripten interface
+    * The method returns bounding box and poitns
+    *
+    * @param camera The camera object representing the current scene
+    * @param maxDepth The maximum depth to traverse into the MNO
+    * @param minPixelSize The minimum pixel size for MNO node to display
+    */
+
+    /*
+    void* serializeForR3F(
+        const Camera& c, 
+        int maxDepth,
+        float minPixelSize
+    ) const;
+    */
+
+    /*
+    void compileR3FTree(
+        std::vector<float>& out, 
+        const Camera& c, 
+        int currentDepth, 
+        int maxDepth,
+        float minPixelSize
+    ) const;
+    */
+
+
+/** 
+#include "Points.h"
+#include "ModifiableNestedOctree.h"
+
+#include <iostream>
+#include <vector>
+#include <string>
+#include <cstring>
+#include <cmath>
+#include <unordered_map>
+
+void ModifiableNestedOctree::compileTree(
+    std::vector<float>& out,
+    int currentDepth,
+    int maxDepth
+) const {
+
+    if (currentDepth > maxDepth) return;
+
+    // Add points from this node's grid
+    for (const auto& points : pointGridMap) {
+        const PointXYZ& p = points.second;
+        out.push_back(p.x);
+        out.push_back(p.y);
+        out.push_back(p.z);
+    }
+
+    // Recurse into children
+    for (int i = 0; i < 8; ++i) {
+        if (children[i]) {
+            children[i]->compileTree(out, currentDepth + 1, maxDepth);
+        }
+    }
+
+}
+
+void ModifiableNestedOctree::compileR3FTree(
+    std::vector<float>& out, 
+    const Camera& c,
+    int depth,
+    int maxDepth,
+    float minPixelSize
+) const {
+    
+    if(depth>maxDepth) {
+        return;
+    }
+
+
+    if (!boundingBox.inCameraFrustum(c) || boundingBox.getScreenProjectedSize(c) < minPixelSize) return; //Check if node is visible
+    
+    //Add Id of Node
+    out.push_back(static_cast<float>(id));
+    
+    //Add Bounding Box Corners
+    out.push_back(boundingBox.minCorner.x);
+    out.push_back(boundingBox.minCorner.y);
+    out.push_back(boundingBox.minCorner.z);
+    out.push_back(boundingBox.maxCorner.x);
+    out.push_back(boundingBox.maxCorner.y);
+    out.push_back(boundingBox.maxCorner.z);
+    
+    // Add pointCount to buffer
+    int pointCount = pointGridMap.size();
+    out.push_back(static_cast<float>(pointCount));
+
+    // Add points from this node's grid
+    for (const auto& points : pointGridMap) {
+        const PointXYZ& p = points.second;
+        out.push_back(p.x);
+        out.push_back(p.y);
+        out.push_back(p.z);
+    }
+
+    // Recurse into children
+    for (int i = 0; i < 8; ++i) {
+        if (children[i]) {
+            children[i]->compileR3FTree(out, c, depth+1, maxDepth, minPixelSize);
+        }
+    }
+
+}
+
+void* ModifiableNestedOctree::serializeForR3F(
+    const Camera& c, 
+    int maxDepth, 
+    float minPixelSize
+) const {
+    
+    std::vector<float> positions;
+    compileR3FTree(positions, c, 0, maxDepth, minPixelSize);
+
+    uint32_t payloadBytes = positions.size() * sizeof(float);
+    uint32_t totalBytes = sizeof(uint32_t) + payloadBytes; //Allocate for header + points data
+
+    uint8_t* buffer = (uint8_t*)malloc(totalBytes);
+
+    std::memcpy(buffer, &payloadBytes, sizeof(uint32_t));
+    std::memcpy(buffer + sizeof(uint32_t), positions.data(), payloadBytes);
+
+    return buffer;
+
+}
+
+EMSCRIPTEN_KEEPALIVE
+void * getVisibleOctreeNodes(int maxDepth, float minPixelSize) {
+    return root.serializeForR3F(c, maxDepth, minPixelSize); // Better Naming conventions???
+}
+*/

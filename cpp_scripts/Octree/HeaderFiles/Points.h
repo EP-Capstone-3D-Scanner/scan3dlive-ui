@@ -1,65 +1,16 @@
 #pragma once
 
 #include "MathTypes.h"
+#include "Camera.h"
 #include <array>
 #include <iosfwd> 
 
-/** 
- * @struct Camera
- * @brief Camera used for projection world-space geometry  
- * @note There is a glich in R3F that causes camera aspect to not update on re-renders
- * @note I fix this by manually setting the first element of projection matrix based on tan(fov/2)
- * */
-struct Camera {
-    /** Product of projection matrix and view matrix -> NDC*/
-    Matrix4x4 projectionViewMatrix;
-
-    /** Inverse of Camera view matrix (worldToCamera)*/
-    Matrix4x4 viewMatrixInverse;
-
-    /** Camera projection matrix */
-    Matrix4x4 projection;
-
-    /** Client screen width */
-    float screenWidth;
-
-    /** Client screen height */
-    float screenHeight;
-
-    /**
-     * @brief Constructs a camera object from renderer matrices and screen dimensions
-     */
-    Camera(
-        const Matrix4x4& viewMatrixInverse_,
-        const Matrix4x4& projection_,
-        float screenWidth_,
-        float screenHeight_  
-    );
-
-    void setViewMatrixInverse(
-        float vmi11, float vmi12, float vmi13, float vmi14, 
-        float vmi21, float vmi22, float vmi23, float vmi24, 
-        float vmi31, float vmi32, float vmi33, float vmi34,
-        float vmi41, float vmi42, float vmi43, float vmi44
-    );
-
-    void setProjectionMatrix(
-        float pm11, float pm12, float pm13, float pm14, 
-        float pm21, float pm22, float pm23, float pm24,  
-        float pm31, float pm32, float pm33, float pm34, 
-        float pm41, float pm42, float pm43, float pm44, 
-        float vppr
-    );
-
-    void setProjectionViewMatrix();
-
-};
 
 /** 
- * @struct Point2D
+ * @struct PointXY
  * @brief Point structure for representing (2D) points  
  * */
-struct Point2D {
+struct PointXY {
 
     /** Point x-coordinate */
     float x = 0;
@@ -69,9 +20,9 @@ struct Point2D {
 
 
     /**
-     * @brief Constructs a Point3D object from point coordinates
+     * @brief Constructs a PointXY object from point coordinates
      */
-    Point2D(
+    PointXY(
         float x_ = 0, 
         float y_ = 0 
     );
@@ -84,29 +35,29 @@ struct Point2D {
     float& operator[](int i);
     const float& operator[](int i) const;
 
-    Point2D&  operator/=(float d);
+    PointXY&  operator/=(float d);
 };
 
-Point2D operator+(
-    const Point2D&  p1, 
-    const Point2D&  p2
+PointXY operator+(
+    const PointXY&  p1, 
+    const PointXY&  p2
 );
 
-Point2D operator/(
-    Point2D p, 
+PointXY operator/(
+    PointXY p, 
     float denominator
 );
 
 std::ostream& operator<<(
     std::ostream& os, 
-    const Point2D&  p
+    const PointXY&  p
 );
 
 /** 
- * @struct Point3D
+ * @struct PointXYZ
  * @brief Point structure for representing (3D) points  
  * */
-struct Point3D {
+struct PointXYZ {
 
     /** Point x-coordinate */
     float x = 0;
@@ -118,30 +69,30 @@ struct Point3D {
     float z = 0;
 
     /**
-     * @brief Constructs a Point3D object from point coordinates
+     * @brief Constructs a PointXYZ object from point coordinates
      */
-    Point3D(
+    PointXYZ(
         float x_ = 0, 
         float y_ = 0, 
         float z_ = 0
     );
     
     /**
-    * Returns coordinates of Point3D object.
+    * Returns coordinates of PointXYZ object.
     *
     * @param c Camera view of 3D scene.
-    * @return NDC Coordinates of Point3D
+    * @return NDC Coordinates of PointXYZ
     */
-    Point3D& toNDC(const Camera& c);
-    Point3D getNDC(const Camera& c) const; 
+    PointXYZ& toNDC(const Camera& c);
+    PointXYZ getNDC(const Camera& c) const; 
 
     /**
     * Gets screen coodindates of 3D Point.
     *
     * @param c Camera view of 3D scene.
-    * @return Screen coordinates of Point3D
+    * @return Screen coordinates of PointXYZ
     */
-    Point2D getScreenCoordinates(const Camera& c) const; //Update to return reference
+    PointXY getScreenCoordinates(const Camera& c) const; //Update to return reference
 
     /**
     * Indexed access to coordinates.
@@ -151,42 +102,47 @@ struct Point3D {
     float& operator[](int i);
     const float& operator[](int i) const;
 
-    Point3D&  operator/=(float d);
+    PointXYZ&  operator/=(float d);
 };
 
-Point3D operator*(
+PointXYZ operator*(
     const Matrix4x4& m, 
-    const Point3D&  p
+    const PointXYZ&  p
 );
 
-Point3D operator+(
-    const Point3D&  p1, 
-    const Point3D&  p2
+PointXYZ operator+(
+    const PointXYZ&  p1, 
+    const PointXYZ&  p2
 );
 
-Point3D operator/(
-    Point3D p, 
+PointXYZ operator-(
+    const PointXYZ&  p1, 
+    const PointXYZ&  p2
+);
+
+PointXYZ operator/(
+    PointXYZ p, 
     float denominator
 );
 
 std::ostream& operator<<(
     std::ostream& os, 
-    const Point3D&  p
+    const PointXYZ& p
 );
 
 /** 
- * @struct Point4D
+ * @struct PointXYZW
  * @brief Point structure for representing (3D) points  
  * */
-struct Point4D : Point3D {
+struct PointXYZW : PointXYZ {
 
     /** Point w-coordinate */
     float w = 1;
 
     /**
-     * @brief Constructs a default Point4D object
+     * @brief Constructs a default PointXYZW object
      */
-    Point4D(
+    PointXYZW(
         float x_ = 0, 
         float y_ = 0, 
         float z_ = 0, 
@@ -194,123 +150,44 @@ struct Point4D : Point3D {
     );
 
     /**
-     * @brief Constructs a Point4D object from corresponding Point3D
+     * @brief Constructs a PointXYZW object from corresponding PointXYZ
      */
-    Point4D(
-        const Point3D& p, 
+    PointXYZW(
+        const PointXYZ& p, 
         float w_ = 1
     );
 
     /**
-    * Converts Point4D (NDC) object to screen coordinates.
+    * Converts PointXYZW (NDC) object to screen coordinates.
     *
     * @param c Camera view of 3D scene.
-    * @return Screen coordinates of Point4D (NDC)
+    * @return Screen coordinates of PointXYZW (NDC)
     */
-    /*Point2D getScreenCoordinates(const Camera& c);*/
+    /*PointXY getScreenCoordinates(const Camera& c);*/
 
     /**
-    * Converts Point4D object to Normalized Device Coordinates (NDC) equivalent
+    * Converts PointXYZW object to Normalized Device Coordinates (NDC) equivalent
     *
     * @param c Camera view of 3D scene.
     * @return NDC coordinates of point
     */
-    Point4D& homogenize();
-    Point4D homogenized() const;
+    PointXYZW& homogenize();
+    PointXYZW homogenized() const;
     
     float& operator[](int i);
     const float& operator[](int i) const;
     
 };
 
-Point4D operator*(
+PointXYZW operator*(
     const Matrix4x4& m, 
-    const Point4D& p
+    const PointXYZW& p
 );
 
 std::ostream& operator<<(
     std::ostream& os, 
-    const Point4D& p
+    const PointXYZW& p
 );
-
-/** 
- * @struct BoundingBox
- * @brief Axis-aligned bounding box structure for regional representation 
- * */
-struct BoundingBox {
-
-    /** The minor/minimal corner of the cube */
-    Point3D minCorner;
-
-    /** The major/maximal corner of the cube */
-    Point3D maxCorner;
-
-    /** The major/maximal corner of the cube */
-    Point3D center;
-
-    /**
-     * @brief Constructs an Axis-aligned bounding box (AABB) from two points
-     */
-    BoundingBox(
-        const Point3D& minCorner_,
-        const Point3D& maxCorner_
-    );
-
-    /**
-    * Tests if a point is inside the bounds of the bounding box
-    *
-    * @param p Point to test against box bounds
-    * @return T/F if point is inside bounding box
-    */
-    bool containsPoint(const Point3D& p) const;
-
-    /**
-    * Tests if bounding box intersects with camera view frustum
-    *
-    * @param p Point to test against box bounds
-    * @return T/F if point is inside bounding box
-    */
-    bool inCameraFrustum(const Camera& c) const;
-
-    /**
-    * Returns size of screen-projected bounding box
-    *
-    * @param c Camera view of 3D scene.
-    * @return Size of the screen-projected bounding box
-    */
-    float getScreenProjectedSize(const Camera& c) const; //Update the use getScreenProjectedSize function
-
-    /**
-    * Returns bounding box center point
-    *
-    * @return Size of the screen-projected bounding box
-    */
-    Point3D getCenter() const;
-
-    /**
-    * Obtains corners of the screen size of the bounding box
-    *
-    * @param c Camera view of 3D scene.
-    * @return 3D Points of the corners of the bounding box
-    */
-    std::array<Point3D, 8> getCorners() const;
-
-    /**
-    * Obtains corners of the bounding box in NDC coordinates
-    *
-    * @param c Camera view of 3D scene.
-    * @return NDC coordinate points of the corners of the bounding box
-    */
-    std::array<Point3D, 8> getCornersNDC(const Camera& c) const;
-
-    /**
-    * Obtains corners of the bounding box in NDC coordinates
-    *
-    * @param c Camera view of 3D scene.
-    * @return Screen coordinate points of the corners of the bounding box
-    */
-    std::array<Point2D, 8> getCornersScreenProjected(const Camera& c) const;
-};
 
 
 

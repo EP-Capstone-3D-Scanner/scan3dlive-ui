@@ -6,31 +6,29 @@
 #include <sstream>
 #include <vector>
 #include <string>
+#include <cmath>
 #include <emscripten/emscripten.h>
 
-// emcc SourceFiles/EmscriptenMain.cpp SourceFiles/ModifiableNestedOctree.cpp SourceFiles/Points.cpp -I HeaderFiles -o OctreeModuleCamTest.js -sEXPORT_ES6 -sEXPORTED_FUNCTIONS=_malloc,_free -sEXPORTED_RUNTIME_METHODS=HEAPF32,HEAPU32 -sINITIAL_MEMORY=64MB
-const int POINT_COUNT_MAX = 75000;
+// cd emcc -O2 SourceFiles/EmscriptenMain.cpp SourceFiles/ModifiableNestedOctree.cpp SourceFiles/BoundingBox.cpp SourceFiles/Camera.cpp SourceFiles/Points.cpp -I HeaderFiles -o OctreeModulePLYInsertionTest.js -sEXPORT_ES6 -sEXPORTED_FUNCTIONS=_malloc,_free -sEXPORTED_RUNTIME_METHODS=HEAPF32,HEAPU32 -sINITIAL_MEMORY=512MB
+// emcc -O3 SourceFiles/EmscriptenMain.cpp SourceFiles/ModifiableNestedOctree.cpp SourceFiles/BoundingBox.cpp SourceFiles/Camera.cpp SourceFiles/Points.cpp -I HeaderFiles -o OctreeModulePLYInsertionTest.js -sEXPORT_ES6 -sEXPORTED_FUNCTIONS=_malloc,_free -sEXPORTED_RUNTIME_METHODS=HEAPF32,HEAPU32,HEAPU8 -sINITIAL_MEMORY=2048MB
 
-Point3D root_tl = {-1, -6, -1};
-Point3D root_br = {15, 4, 5};
-Point3D world_point = {2, 1, 1};
+auto root = std::make_unique<ModifiableNestedOctree>(PointXYZ(0, 0, 0), PointXYZ(1, 1, 1));
 
 Matrix4x4 worldToCamera = {{
-    {{0.6132673774338434, 2.775557561562892e-17, -0.7898753849661453, -5.329070518200753e-15}}, 
-    {{-0.3707579367545945, 0.8829920797773887, -0.2878602775373465, -5.329070518200753e-15}}, 
-    {{0.6974537089362219, 0.4693878854959958, 0.5415102370599341, -80.68160734792751}}, 
-    {{0, 0, 0, 1.0000000000000002}}
+    {{1, 0, 0, 0}}, 
+    {{0, 1, 0, 0}}, 
+    {{0, 0, 1, 0}}, 
+    {{0, 0, 0, 1}}
 }};
 
 Matrix4x4 projection = {{
-    {{0.16397222677594092, 0, 0, 0}}, 
-    {{0, 1.3032253728412058, 0, 0}}, 
-    {{0, 0, -1.0002000200020003, -0.20002000200020004}}, 
-    {{0, 0, -1, 0}}
+    {{1, 0, 0, 0}}, 
+    {{0, 1, 0, 0}}, 
+    {{0, 0, 1, 0}}, 
+    {{0, 0, 0, 1}}
 }};
 
 Camera c = {worldToCamera, projection, 1280, 161.0500030517578};
-ModifiableNestedOctree root(root_tl, root_br);
 
 
 extern "C" {
@@ -46,19 +44,15 @@ extern "C" {
         float pm31, float pm32, float pm33, float pm34, 
         float pm41, float pm42, float pm43, float pm44, 
         float vppr
-    ) { //vppr = viewport pixel ratio
+    ) {
 
-        //std::cout << "Printing Camera:" << std::endl;
-        //std::cout << "View Matrix Inverse" << std::endl;
         c.setViewMatrixInverse(
             vmi11, vmi12, vmi13, vmi14,
             vmi21, vmi22, vmi23, vmi24,
             vmi31, vmi32, vmi33, vmi34,
             vmi41, vmi42, vmi43, vmi44
         );
-        //printMatrix4x4(c.viewMatrixInverse);
 
-        //std::cout << "Projection Matrix" << std::endl;
         c.setProjectionMatrix(
             pm11, pm12, pm13, pm14, 
             pm21, pm22, pm23, pm24,  
@@ -68,34 +62,92 @@ extern "C" {
         );
 
         c.setProjectionViewMatrix();
-        //printMatrix4x4(c.projection);
     
     }
 
     EMSCRIPTEN_KEEPALIVE
-    void insertPoints(
-        const float * dataPtr, 
-        const int pointCount
-    ) {
-        std::cout << "[EMSCRIPTEN]: Inserting Points Start" << std::endl;
-        for(int i = 0; i < pointCount*3; i+=3) {
-            Point3D dataPoint = {*(dataPtr+i), *(dataPtr+i+1), *(dataPtr+i+2)};
-            root.insertPoint(dataPoint);
+    int loadPointsXYZFromBinaryPLY(const uint8_t* dataPtr, const int dataSize) {
+        std::vector<PointXYZ> points;
+        std::istringstream file(std::string(reinterpret_cast<const char*>(dataPtr), dataSize));
+        std::string line;
+        size_t vertexCount = 0;
+        int headerSizeBytes = 0;
+
+        // Read header
+        while (std::getline(file, line)) {
+            if (line.substr(0, 14) == "element vertex") {
+                vertexCount = std::stoul(line.substr(15));
+            }
+            if (line == "end_header") {
+                headerSizeBytes = (int) file.tellg();
+                break;
+            }
         }
-        std::cout << "[EMSCRIPTEN]: Inserting Points End" << std::endl;
-        std::cout << root.NODE_ID << std::endl;
-        std::cout << root.POINT_COUNT << std::endl;
+
+        // Read vertex data
+        for (size_t i = 0; i < vertexCount; ++i) {
+            float x, y, z;
+            int r, g, b;
+            file.read(reinterpret_cast<char*>(&x), sizeof(float));
+            file.read(reinterpret_cast<char*>(&y), sizeof(float));
+            file.read(reinterpret_cast<char*>(&z), sizeof(float));
+            file.read(reinterpret_cast<char*>(&r), sizeof(int));
+            file.read(reinterpret_cast<char*>(&g), sizeof(int));
+            file.read(reinterpret_cast<char*>(&b), sizeof(int));
+            points.emplace_back(x, y, z);
+        }
+
+        PointXYZ minPoint = points[0];
+        PointXYZ maxPoint = points[0];
+
+        for (const auto& p : points) {
+            if (p.x < minPoint.x) minPoint.x = p.x;
+            if (p.y < minPoint.y) minPoint.y = p.y;
+            if (p.z < minPoint.z) minPoint.z = p.z;
+            if (p.x > maxPoint.x) maxPoint.x = p.x;
+            if (p.y > maxPoint.y) maxPoint.y = p.y;
+            if (p.z > maxPoint.z) maxPoint.z = p.z;
+        }
+        ModifiableNestedOctree* originalRootPtr = root.get();
+        expandRoot(root, BoundingBox(minPoint, maxPoint));
+        for (const auto& p : points) {
+            root->insertPoint(p);
+        }
+        root->repairLOD(originalRootPtr);
+
+        return headerSizeBytes;
+    }
+
+    EMSCRIPTEN_KEEPALIVE
+    void insertPoints(const float * dataPtr, const int pointCount) {
+        std::vector<PointXYZ> points;
+        points.reserve(pointCount);
         
+        PointXYZ minPoint(INFINITY, INFINITY, INFINITY);
+        PointXYZ maxPoint(-INFINITY, -INFINITY, -INFINITY);
+        for(int i = 0; i < pointCount; i++) {
+            PointXYZ p(*(dataPtr+3*i+0), *(dataPtr+3*i+1), *(dataPtr+3*i+2));
+            points.push_back(p);
+            if (p.x < minPoint.x) minPoint.x = p.x;
+            if (p.y < minPoint.y) minPoint.y = p.y;
+            if (p.z < minPoint.z) minPoint.z = p.z;
+            if (p.x > maxPoint.x) maxPoint.x = p.x;
+            if (p.y > maxPoint.y) maxPoint.y = p.y;
+            if (p.z > maxPoint.z) maxPoint.z = p.z;
+        }
+        
+        ModifiableNestedOctree* originalRoot = root.get();
+        BoundingBox pointInsertionBox(minPoint, maxPoint);
+        expandRoot(root, pointInsertionBox);
+        for(const PointXYZ& p : points) {
+            root->insertPoint(p);
+        }
+        root->repairLOD(originalRoot);
     }
 
     EMSCRIPTEN_KEEPALIVE
     void * getVisibleOctreeNodes(int maxDepth, float minPixelSize) {
-        return root.serializeForR3F(c, maxDepth, minPixelSize); // Better Naming conventions???
-    }
-
-    EMSCRIPTEN_KEEPALIVE
-    void * getVisibleOctreeNodes2(int maxDepth, float minPixelSize) {
-        return root.serializeForR3F2(c, maxDepth, minPixelSize); // Better Naming conventions???
+        return root->serializeForR3F(c, maxDepth, minPixelSize);
     }
 }
 

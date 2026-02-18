@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Points.h"
+#include "BoundingBox.h"
+#include "Camera.h"
 #include <array>
 #include <memory>
 #include <vector>
@@ -16,10 +18,9 @@ class ModifiableNestedOctree {
 private:
 
     /** Resolution of MNO Grid */
-    static const int GRID_RESOLUTION = 4;
-    static const int GRID_LENGTH = 1<<GRID_RESOLUTION;
+    static const int GRID_RESOLUTION = 3;
+    static const int GRID_LENGTH = 1 << GRID_RESOLUTION;
     static const int GRID_CELL_COUNT = GRID_LENGTH*GRID_LENGTH*GRID_LENGTH;
-    static const int NODE_POINT_BUFFER = 500;
 
     /** Id of MNO object */
     int id;
@@ -28,10 +29,8 @@ private:
     BoundingBox boundingBox;
 
     /** Point grid occupation array */
-    std::unordered_map<int, Point3D> pointGridMap = {};
+    std::unordered_map<int, PointXYZ> pointGridMap = {};
 
-    /** Point buffer for the MNO node*/
-    //std::array<Point3D, NODE_POINT_BUFFER> pointBuffer; // Need to insert...
 
     /** Children of the MNO node*/
     std::array<std::unique_ptr<ModifiableNestedOctree>, 8> children;
@@ -45,30 +44,20 @@ public:
     inline static int POINT_COUNT = 0;
 
     /**
-     * @brief Constructs a MNO node from bounding box range
+     * @brief MNO constructor functions
      */
     ModifiableNestedOctree(const BoundingBox& boundingBox_);
+    ModifiableNestedOctree(const PointXYZ& minCorner_, const PointXYZ& maxCorner_);
 
     /**
-     * @brief Constructs a MNO node from corners of bounding box range
-     */
-    ModifiableNestedOctree(
-        const Point3D& minCorner_, 
-        const Point3D& maxCorner_
-    );
-
-    /**
-    * Inserts Point3D into a MNO node (grid)
+    * Inserts PointXYZ into a MNO node (grid)
     *
-    * @param c Camera view of 3D scene.
+    * @param p Point to be inserted
     * @note if the MNO grid is full, this function is recursively called on MNO children
     */
-    void insertPoint(const Point3D& p);
-
-    /**
-    * Deletes a point from the MNO node
-    */
-    void deletePoint();
+    void insertPoint(const PointXYZ& p);
+    int insertPointInGrid(const PointXYZ& p);
+    void repairLOD(ModifiableNestedOctree* originalRoot);
 
     /**
     * Prints information on a single MNO node to the console
@@ -81,69 +70,7 @@ public:
     * Returns MNO node as text file object
     */
     void printTreeToFile() const;
-
-    /**
-    * Compiles MNO node into output buffer (float)
-    *
-    * @param out Float buffer of MNO points
-    * @param currentDepth Current depth into MNO traversal
-    * @param maxDepth Max depth to traverse into MNO
-    */
-    void compileTree(std::vector<float>& out, int currentDepth, int maxDepth) const;
-    void compileR3FTree(
-        std::vector<float>& out, 
-        const Camera& c, 
-        int currentDepth, 
-        int maxDepth,
-        float minPixelSize
-    ) const;
-    void compileR3FTree2(
-        std::vector<float>& out, 
-        const Camera& c, 
-        int currentDepth, 
-        int maxDepth,
-        float minPixelSize
-    ) const;
-
-    /**
-    * Compiles info on MNO node into text buffer (includes children)
-    *
-    * @param out Text buffer / file to ouput MNO information
-    * @param depth Current depth into MNO traversal
-    */
-    void printNodeRecursive(std::ofstream& out, int depth) const;
-
-
-    int getId() const;
-    const BoundingBox& getBoundingBox() const;
-    ModifiableNestedOctree* getChild(int childIndex) const;
-    ModifiableNestedOctree* createChild(int childIndex);
-
-    /**
-    * Compiles MNO into binary object and outputs as file
-    *
-    * @param maxDepth The maximum depth to traverse into MNO node
-    * @param fileName Name of the binary file to output
-    * @return Binary buffer of Octree information and binary file
-    */
-    std::vector<uint8_t> serializeForWebSocket(
-        int maxDepth, 
-        const std::string& fileName
-    ) const;
-
-    /**
-    * Compiles MNO into binary object to be used in JS/Emscripten interface
-    * The method returns bounding box and poitns
-    *
-    * @param camera The camera object representing the current scene
-    * @param maxDepth The maximum depth to traverse into the MNO
-    * @param minPixelSize The minimum pixel size for MNO node to display
-    */
-    void* serializeForR3F(
-        const Camera& c, 
-        int maxDepth,
-        float minPixelSize
-    ) const;
+    void printTreeToFileHelper(std::ofstream& out, int depth) const;
 
     /**
     * Compiles MNO into binary object to be used in JS/Emscripten interface
@@ -153,10 +80,35 @@ public:
     * @param maxDepth The maximum depth to traverse into the MNO
     * @param minPixelSize The minimum pixel size for MNO node to display
     */
-    void* serializeForR3F2(
-        const Camera& c, 
-        int maxDepth,
-        float minPixelSize
-    ) const;
+    void* serializeForR3F(const Camera& c, int maxDepth, float minPixelSize) const;
 
+    /**
+    * Compiles MNO node into output buffer (float)
+    *
+    * @param out Float buffer of MNO points
+    * @param currentDepth Current depth into MNO traversal
+    * @param maxDepth Max depth to traverse into MNO
+    */
+    void compileTree(std::vector<float>& out, int currentDepth, int maxDepth) const;
+    void compileR3FTree(std::vector<float>& out, const Camera& c, int currentDepth, int maxDepth, float minPixelSize) const;
+
+    /**
+     * @brief Getters functions for MNO class
+     */
+    int getId() const;
+    int getPointOctant(const PointXYZ& p) const;
+    int getPointGridCell(const PointXYZ& p) const;
+    const BoundingBox& getBoundingBox() const;
+    BoundingBox getGridCellBoundingBox(int gridCellIndex) const;
+
+    ModifiableNestedOctree* getChild(int childIndex) const;
+    ModifiableNestedOctree* createChild(int childIndex);
+    void setChild(int childIndex, std::unique_ptr<ModifiableNestedOctree> child);
 };
+
+/**
+ * @brief Iteratively expands root node to fit all points in the input vector
+ * 
+ * @param points The vector of points to be included in the expanded root node
+ */
+void expandRoot(std::unique_ptr<ModifiableNestedOctree>& root, const BoundingBox& box);
