@@ -8,16 +8,22 @@
  * @brief Camera Struct Definitions
  * */
 
-Camera::Camera( 
+Camera::Camera(
+    float x_, float y_, float z_, 
     const Matrix4x4& viewMatrixInverse_,
     const Matrix4x4& projection_,
     float screenWidth_,
     float screenHeight_
-) : viewMatrixInverse(viewMatrixInverse_), projection(projection_),
+) : x(x_), y(y_), z(z_), viewMatrixInverse(viewMatrixInverse_), projection(projection_),
     screenWidth(screenWidth_), screenHeight(screenHeight_) {
         projection[0][0] = 1.30322537284/(screenWidth_ / screenHeight_); // currently assume fov is 75 degrees
     }
 
+void Camera::setPosition(float cx, float cy, float cz) {   
+    x = cx;
+    y = cy;
+    z = cz;
+}
 
 void Camera::setViewMatrixInverse(
     float vmi11, float vmi12, float vmi13, float vmi14, 

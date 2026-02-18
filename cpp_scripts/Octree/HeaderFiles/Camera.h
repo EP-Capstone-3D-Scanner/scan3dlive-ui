@@ -10,6 +10,10 @@
  * @note I fix this by manually setting the first element of projection matrix based on tan(fov/2)
  * */
 struct Camera {
+
+    /** Camera Position */
+    float x, y, z;
+    
     /** Product of projection matrix and view matrix -> NDC*/
     Matrix4x4 projectionViewMatrix;
 
@@ -29,11 +33,16 @@ struct Camera {
      * @brief Constructs a camera object from renderer matrices and screen dimensions
      */
     Camera(
+        const float x_,
+        const float y_,
+        const float z_,
         const Matrix4x4& viewMatrixInverse_,
         const Matrix4x4& projection_,
         float screenWidth_,
         float screenHeight_  
     );
+
+    void setPosition(float x, float y, float z);
 
     void setViewMatrixInverse(
         float vmi11, float vmi12, float vmi13, float vmi14, 

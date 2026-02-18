@@ -34,36 +34,39 @@ bool BoundingBox::containsPoint(const PointXYZ& p) const {
 }
 
 bool BoundingBox::inCameraFrustum(const Camera& c) const {
-    std::array<PointXYZ, 8> cornersNDC = getCornersNDC(c);
+    // Note: Make sure c.setProjectionViewMatrix() has been called before this runs!
+    const auto& m = c.projectionViewMatrix;
 
-    // If all points are less than -1 or greater than +1 in all dims then we don't
-    // intersect view frustum
-    for (int axis = 0; axis < 3; ++axis) {
-        float minVal = cornersNDC[0][axis];
-        float maxVal = cornersNDC[0][axis];
-        for (int i = 1; i < 8; ++i) {
-            minVal = std::min(minVal, cornersNDC[i][axis]);
-            maxVal = std::max(maxVal, cornersNDC[i][axis]);
+    // Extract the 6 frustum planes from the View-Projection matrix.
+    // Each plane equation is in the form: Ax + By + Cz + D = 0
+    float planes[6][4] = {
+        { m[3][0] + m[0][0], m[3][1] + m[0][1], m[3][2] + m[0][2], m[3][3] + m[0][3] }, // Left
+        { m[3][0] - m[0][0], m[3][1] - m[0][1], m[3][2] - m[0][2], m[3][3] - m[0][3] }, // Right
+        { m[3][0] + m[1][0], m[3][1] + m[1][1], m[3][2] + m[1][2], m[3][3] + m[1][3] }, // Bottom
+        { m[3][0] - m[1][0], m[3][1] - m[1][1], m[3][2] - m[1][2], m[3][3] - m[1][3] }, // Top
+        { m[3][0] + m[2][0], m[3][1] + m[2][1], m[3][2] + m[2][2], m[3][3] + m[2][3] }, // Near
+        { m[3][0] - m[2][0], m[3][1] - m[2][1], m[3][2] - m[2][2], m[3][3] - m[2][3] }  // Far
+    };
+
+    // Test the bounding box against each plane
+    for (int i = 0; i < 6; ++i) {
+        // Find the "p-vertex" - the corner of the AABB furthest along the plane's normal direction
+        float px = (planes[i][0] > 0.0f) ? maxCorner.x : minCorner.x;
+        float py = (planes[i][1] > 0.0f) ? maxCorner.y : minCorner.y;
+        float pz = (planes[i][2] > 0.0f) ? maxCorner.z : minCorner.z;
+
+        // Calculate the distance from the p-vertex to the plane
+        float distance = planes[i][0] * px + planes[i][1] * py + planes[i][2] * pz + planes[i][3];
+
+        // If the p-vertex is on the negative side of the plane, 
+        // the entire bounding box is outside the frustum.
+        if (distance < 0.0f) {
+            return false;
         }
-        if (maxVal < -1.0f || minVal > 1.0f) return false;
     }
-    return true;
+
+    return true; // Intersects or is fully inside the frustum
 }
-
-/** 
- * INCOMPLETE FUNCTION, NEED TO UPDATE
- * 
-
-bool BoundingBox::inCameraFrustum(const Camera& c) const { 
-    std::array<PointXYZ, 8> cornersNDC = getCornersNDC(c);
-
-    for (PointXYZ& p : cornersNDC) {
-        if(p.x>=-1 && p.x<=1 && p.y>=-1 && p.y<=1 && p.z>=-1 && p.z<=1) return true;
-    }
-
-    return false;
-
-}*/
 
 float BoundingBox::getScreenProjectedSize(const Camera& c) const {
 

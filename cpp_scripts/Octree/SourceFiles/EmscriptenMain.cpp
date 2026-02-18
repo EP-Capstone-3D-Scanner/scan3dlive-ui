@@ -28,13 +28,14 @@ Matrix4x4 projection = {{
     {{0, 0, 0, 1}}
 }};
 
-Camera c = {worldToCamera, projection, 1280, 161.0500030517578};
+Camera c = {0, 0, 0, worldToCamera, projection, 1280, 161.0500030517578};
 
 
 extern "C" {
 
     EMSCRIPTEN_KEEPALIVE
     void updateOctreeCamera(
+        float x, float y, float z,
         float vmi11, float vmi12, float vmi13, float vmi14, 
         float vmi21, float vmi22, float vmi23, float vmi24, 
         float vmi31, float vmi32, float vmi33, float vmi34,
@@ -45,6 +46,8 @@ extern "C" {
         float pm41, float pm42, float pm43, float pm44, 
         float vppr
     ) {
+        
+        c.setPosition(x, y, z);
 
         c.setViewMatrixInverse(
             vmi11, vmi12, vmi13, vmi14,

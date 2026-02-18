@@ -135,3 +135,21 @@ void * getVisibleOctreeNodes(int maxDepth, float minPixelSize) {
     return root.serializeForR3F(c, maxDepth, minPixelSize); // Better Naming conventions???
 }
 */
+
+/*
+bool BoundingBox::inCameraFrustum(const Camera& c) const {
+    std::array<PointXYZ, 8> cornersNDC = getCornersNDC(c);
+
+    // If all points are less than -1 or greater than +1 in all dims then we don't intersect view frustum
+    for (int axis = 0; axis < 3; ++axis) {
+        float minVal = cornersNDC[0][axis];
+        float maxVal = cornersNDC[0][axis];
+        for (int i = 1; i < 8; ++i) {
+            minVal = std::min(minVal, cornersNDC[i][axis]);
+            maxVal = std::max(maxVal, cornersNDC[i][axis]);
+        }
+        if (maxVal < -1.0f || minVal > 1.0f) return false;
+    }
+    return true;
+}
+*/
