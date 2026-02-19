@@ -3,6 +3,8 @@ import { useEffect } from "react";
 function useWebsocketClient({url, setSidebarDisplay}) {;
     useEffect(() =>{
         const ws = new WebSocket(url);
+        ws.binaryType = "arraybuffer";
+        
         ws.onopen = () => {
             console.log("WebSocket connection established");
             setSidebarDisplay(prev => ({...prev, scannerOnline: true}));

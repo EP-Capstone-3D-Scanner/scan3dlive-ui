@@ -2,7 +2,7 @@ import React from 'react';
 import * as THREE from 'three'
 import { useState , useEffect , useMemo , useRef} from 'react';
 import { Canvas, useLoader, useThree } from '@react-three/fiber'
-import { Environment , OrbitControls, Html } from '@react-three/drei'
+import { Environment , FirstPersonControls, OrbitControls, Html } from '@react-three/drei'
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js'
 import OctreeTest from './OctreeTest'
 import * as Loggers from './Loggers'
@@ -104,6 +104,7 @@ function Canvas3D({
   setDisplaySettings,
 }) {
   const binaryFile = "point_clouds/octree_bin10.bin";
+  const binaryPLYFile = "point_clouds/oak_5M.ply";
 
   return (
     <div id="Canvas3D" className="w-100">
@@ -115,9 +116,7 @@ function Canvas3D({
         }}
         camera={{ fov: 75, near: 0.0001, far: 1000, position: [0, 1.5, 12] }}
       >
-        <SceneUpdater 
-          displaySettings={displaySettings} 
-        />
+        <SceneUpdater displaySettings={displaySettings} />
         <Skybox
           visible={displaySettings["skyboxVisible"]}
           preset={displaySettings["skyboxPreset"]}
@@ -135,6 +134,12 @@ function Canvas3D({
           url={binaryFile} 
           displaySettings={displaySettings}
         />*/}
+        <OctreeTest 
+          position={[0, 0, 0]} 
+          rotation={[0, 0, 0]} 
+          url={binaryPLYFile} 
+          displaySettings={displaySettings}
+        />
       </Canvas>
     </div>
   );

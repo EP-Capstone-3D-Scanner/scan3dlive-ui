@@ -24,12 +24,11 @@ function App() {
     'backgroundVisible':false,
   })
   const [selectedModel, setSelectedModel] = useState(null);
-  const [clips, setClips] = useState({
-    0:{type:"Cube", position:[1, 1, 1], rotation:160, size:100}, 
-  });
+  const [clips, setClips] = useState({0:{type:"Cube", position:[1, 1, 1], rotation:160, size:100}});
   const [annotations, setAnnotations] = useState(new Map());
   
-  useWebSocketClient({url: "ws://192.168.2.15:8001", setSidebarDisplay: setSidebarDisplay});
+  //useWebSocketClient({url: "ws://192.168.2.15:8001", setSidebarDisplay: setSidebarDisplay});
+  useWebSocketClient({url: "ws://127.0.0.1:8001", setSidebarDisplay: setSidebarDisplay});
   return (
     <div 
       id="web_app" 
@@ -71,7 +70,7 @@ function App() {
         >
         </Sidebar>
       </div>
-      <ScannerConnectionStatusToast></ScannerConnectionStatusToast>
+      {/*<ScannerConnectionStatusToast></ScannerConnectionStatusToast>*/}
       <Footer></Footer>
     </div>
   )

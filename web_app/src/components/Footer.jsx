@@ -5,7 +5,7 @@ import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Tooltip from 'react-bootstrap/Tooltip';
 
 const Footer = ({}) => {
-    const [visibleModal, setVisibleModal] = useState('details');
+    const [visibleModal, setVisibleModal] = useState('none');
 
     return (
         <>
