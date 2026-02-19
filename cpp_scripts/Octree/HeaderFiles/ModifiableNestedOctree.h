@@ -8,7 +8,9 @@
 #include <vector>
 #include <fstream>
 #include <string>
-#include <unordered_map>
+//#include <unordered_map>
+#include "robin_hood.h"
+//#include "tsl/robin_map.h"
 
 /** 
  * @class ModifiableNestedOctree
@@ -29,7 +31,7 @@ private:
     BoundingBox boundingBox;
 
     /** Point grid occupation array */
-    std::unordered_map<int, PointXYZ> pointGridMap = {};
+    robin_hood::unordered_flat_map<int, PointXYZ> pointGridMap = {};
 
 
     /** Children of the MNO node*/
@@ -90,8 +92,7 @@ public:
     * @param maxDepth Max depth to traverse into MNO
     */
     void compileTree(std::vector<float>& out, int currentDepth, int maxDepth) const;
-    void compileR3FTree(std::vector<float>& out, const Camera& c, int currentDepth, int maxDepth, float minPixelSize) const;
-
+    void compileR3FTree(std::vector<float>& out, const Camera& c, int depth, int maxDepth, float minPixelSize) const;
     /**
      * @brief Getters functions for MNO class
      */
