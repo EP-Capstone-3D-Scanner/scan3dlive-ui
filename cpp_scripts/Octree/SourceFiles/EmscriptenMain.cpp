@@ -12,7 +12,6 @@
 // cd emcc -O2 SourceFiles/EmscriptenMain.cpp SourceFiles/ModifiableNestedOctree.cpp SourceFiles/BoundingBox.cpp SourceFiles/Camera.cpp SourceFiles/Points.cpp -I HeaderFiles -o OctreeModulePLYInsertionTest.js -sEXPORT_ES6 -sEXPORTED_FUNCTIONS=_malloc,_free -sEXPORTED_RUNTIME_METHODS=HEAPF32,HEAPU32 -sINITIAL_MEMORY=512MB
 // emcc -O3 SourceFiles/EmscriptenMain.cpp SourceFiles/ModifiableNestedOctree.cpp SourceFiles/BoundingBox.cpp SourceFiles/Camera.cpp SourceFiles/Points.cpp -I HeaderFiles -o OctreeModulePLYInsertionTest.js -sEXPORT_ES6 -sEXPORTED_FUNCTIONS=_malloc,_free -sEXPORTED_RUNTIME_METHODS=HEAPF32,HEAPU32,HEAPU8 -sINITIAL_MEMORY=2048MB
 // emcc -sENVIRONMENT=web -sMALLOC=emmalloc -O3 -flto SourceFiles/EmscriptenMain.cpp SourceFiles/ModifiableNestedOctree.cpp SourceFiles/BoundingBox.cpp SourceFiles/Camera.cpp SourceFiles/Points.cpp -I HeaderFiles -o OctreeModulePLYInsertionTest.js -sEXPORT_ES6 -sEXPORTED_FUNCTIONS=_malloc,_free -sEXPORTED_RUNTIME_METHODS=HEAPF32,HEAPU32,HEAPU8 -sINITIAL_MEMORY=1024MB -sALLOW_MEMORY_GROWTH=0
-auto root = std::make_unique<ModifiableNestedOctree>(PointXYZ(0, 0, 0), PointXYZ(1, 1, 1));
 
 Matrix4x4 worldToCamera = {{
     {{1, 0, 0, 0}}, 
@@ -111,13 +110,12 @@ extern "C" {
             if (p.y > maxPoint.y) maxPoint.y = p.y;
             if (p.z > maxPoint.z) maxPoint.z = p.z;
         }
-        ModifiableNestedOctree* originalRootPtr = root.get();
-        expandRoot(root, BoundingBox(minPoint, maxPoint));
+        uint16_t originalRootId = ModifiableNestedOctree::ROOT_ID;
+        ModifiableNestedOctree::expandRoot(BoundingBox(minPoint, maxPoint));
         for (const auto& p : points) {
-            root->insertPoint(p);
+            ModifiableNestedOctree::MNO[ModifiableNestedOctree::ROOT_ID].insertPoint(p);
         }
-        root->repairLOD(originalRootPtr);
-
+        ModifiableNestedOctree::MNO[ModifiableNestedOctree::ROOT_ID].repairLOD(originalRootId);
         return headerSizeBytes;
     }
 
@@ -139,18 +137,18 @@ extern "C" {
             if (p.z > maxPoint.z) maxPoint.z = p.z;
         }
         
-        ModifiableNestedOctree* originalRoot = root.get();
+        uint16_t originalRootId = ModifiableNestedOctree::ROOT_ID;
         BoundingBox pointInsertionBox(minPoint, maxPoint);
-        expandRoot(root, pointInsertionBox);
+        ModifiableNestedOctree::expandRoot(pointInsertionBox);
         for(const PointXYZ& p : points) {
-            root->insertPoint(p);
+            ModifiableNestedOctree::MNO[ModifiableNestedOctree::ROOT_ID].insertPoint(p);
         }
-        root->repairLOD(originalRoot);
+        ModifiableNestedOctree::MNO[ModifiableNestedOctree::ROOT_ID].repairLOD(originalRootId);
     }
 
     EMSCRIPTEN_KEEPALIVE
     void * getVisibleOctreeNodes(int maxDepth, float minPixelSize) {
-        return root->serializeForR3F(c, maxDepth, minPixelSize);
+        return ModifiableNestedOctree::MNO[ModifiableNestedOctree::ROOT_ID].serializeForR3F(c, maxDepth, minPixelSize);
     }
 }
 

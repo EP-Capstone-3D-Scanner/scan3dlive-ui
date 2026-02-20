@@ -3,14 +3,14 @@
 #include "Points.h"
 #include "BoundingBox.h"
 #include "Camera.h"
+#include "robin_hood.h"
+
 #include <array>
 #include <memory>
 #include <vector>
 #include <fstream>
 #include <string>
-//#include <unordered_map>
-#include "robin_hood.h"
-//#include "tsl/robin_map.h"
+
 
 /** 
  * @class ModifiableNestedOctree
@@ -23,24 +23,29 @@ private:
     static const int GRID_RESOLUTION = 3;
     static const int GRID_LENGTH = 1 << GRID_RESOLUTION;
     static const int GRID_CELL_COUNT = GRID_LENGTH*GRID_LENGTH*GRID_LENGTH;
+    inline static std::vector<uint32_t> freeMNOIndices;
 
     /** Id of MNO object */
-    int id;
+    uint32_t id;
 
     /** Bounding box of the MNO node*/
     BoundingBox boundingBox;
 
     /** Point grid occupation array */
-    robin_hood::unordered_flat_map<int, PointXYZ> pointGridMap = {};
-
+    robin_hood::unordered_flat_map<uint16_t, PointXYZ> pointGridMap = {};
 
     /** Children of the MNO node*/
-    std::array<std::unique_ptr<ModifiableNestedOctree>, 8> children;
+    std::array<uint32_t, 8> children = {UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX};
+
+    /** Parent of the MNO node*/
+    uint32_t parent = 0;
+
+
 
 public:
-
-    /** Static variable Id tracker */
-    inline static int NODE_ID = 0;
+    inline static std::vector<ModifiableNestedOctree> MNO;
+    static void expandRoot(const BoundingBox& box);
+    inline static uint32_t ROOT_ID = 0;
 
     /** Point Count Tracker */
     inline static int POINT_COUNT = 0;
@@ -48,8 +53,8 @@ public:
     /**
      * @brief MNO constructor functions
      */
-    ModifiableNestedOctree(const BoundingBox& boundingBox_);
-    ModifiableNestedOctree(const PointXYZ& minCorner_, const PointXYZ& maxCorner_);
+    ModifiableNestedOctree(const uint32_t id_, const uint32_t parent_, const BoundingBox& boundingBox_);
+    ModifiableNestedOctree(const uint32_t id_, const uint32_t parent_, const PointXYZ& minCorner_, const PointXYZ& maxCorner_);
 
     /**
     * Inserts PointXYZ into a MNO node (grid)
@@ -58,8 +63,8 @@ public:
     * @note if the MNO grid is full, this function is recursively called on MNO children
     */
     void insertPoint(const PointXYZ& p);
-    int insertPointInGrid(const PointXYZ& p);
-    void repairLOD(ModifiableNestedOctree* originalRoot);
+    uint16_t insertPointInGrid(const PointXYZ& p);
+    void repairLOD(uint32_t originalRoot);
 
     /**
     * Prints information on a single MNO node to the console
@@ -96,20 +101,15 @@ public:
     /**
      * @brief Getters functions for MNO class
      */
-    int getId() const;
-    int getPointOctant(const PointXYZ& p) const;
-    int getPointGridCell(const PointXYZ& p) const;
+    uint32_t getId() const;
+    uint32_t getParentId() const;
+    void setParentId(uint32_t parentId);
+    uint8_t getPointOctant(const PointXYZ& p) const;
+    uint16_t getPointGridCell(const PointXYZ& p) const;
     const BoundingBox& getBoundingBox() const;
-    BoundingBox getGridCellBoundingBox(int gridCellIndex) const;
+    BoundingBox getGridCellBoundingBox(const uint16_t gridCellIndex) const;
 
-    ModifiableNestedOctree* getChild(int childIndex) const;
-    ModifiableNestedOctree* createChild(int childIndex);
-    void setChild(int childIndex, std::unique_ptr<ModifiableNestedOctree> child);
+    uint32_t getChildId(const uint8_t childIndex) const;
+    uint32_t createChild(const uint8_t childIndex); 
+    void setChildId(const uint8_t childIndex, const uint32_t childId);
 };
-
-/**
- * @brief Iteratively expands root node to fit all points in the input vector
- * 
- * @param points The vector of points to be included in the expanded root node
- */
-void expandRoot(std::unique_ptr<ModifiableNestedOctree>& root, const BoundingBox& box);

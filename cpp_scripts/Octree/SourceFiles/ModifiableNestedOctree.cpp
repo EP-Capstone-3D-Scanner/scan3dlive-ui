@@ -1,19 +1,15 @@
 #include "Points.h"
-
 #include "BoundingBox.h"
 #include "Camera.h"
 #include "ModifiableNestedOctree.h"
-#include <iostream>
+#include "robin_hood.h"
 
+#include <iostream>
 #include <vector>
-//#include <set>
 #include <string>
 #include <cstring>
 #include <cmath>
-//#include <unordered_map>
-#include "robin_hood.h"
-//#include "tsl/robin_map.h"
-//#include "tsl/robin_set.h"
+
 
 
 /**
@@ -25,15 +21,12 @@
  * */
 
 
-ModifiableNestedOctree::ModifiableNestedOctree(const BoundingBox& boundingBox_): boundingBox(boundingBox_) {
+ModifiableNestedOctree::ModifiableNestedOctree(const uint32_t id_, const uint32_t parent_, const BoundingBox& boundingBox_): id(id_), parent(parent_), boundingBox(boundingBox_) {
     pointGridMap.reserve(0);
-    id = NODE_ID++;
 }
 
-
-ModifiableNestedOctree::ModifiableNestedOctree(const PointXYZ& minCorner_, const PointXYZ& maxCorner_): boundingBox(minCorner_, maxCorner_) {
+ModifiableNestedOctree::ModifiableNestedOctree(const uint32_t id_,const uint32_t parent_, const PointXYZ& minCorner_, const PointXYZ& maxCorner_): id(id_), parent(parent_), boundingBox(minCorner_, maxCorner_) {
     pointGridMap.reserve(0);
-    id = NODE_ID++;
 }
 
 
@@ -42,125 +35,110 @@ void ModifiableNestedOctree::insertPoint(const PointXYZ& point) {
         std::cerr << "Unable to add point to ModifiableNestedOctree instance (Point out of bounds)" << std::endl;
         return;
     }
-
-
-    ModifiableNestedOctree* current = this;
-    while (current->insertPointInGrid(point) == -1) {
-        int childIndex = current->getPointOctant(point);
-        current = current->createChild(childIndex);
+    uint32_t currentNodeId = id;
+    while (MNO[currentNodeId].insertPointInGrid(point) == UINT16_MAX) {
+        uint8_t childIndex = MNO[currentNodeId].getPointOctant(point);
+        currentNodeId = MNO[currentNodeId].createChild(childIndex);
     }
 }
 
 
-int ModifiableNestedOctree::insertPointInGrid(const PointXYZ& point) {
-    int gridCell = getPointGridCell(point);
+uint16_t ModifiableNestedOctree::insertPointInGrid(const PointXYZ& point) {
+    uint16_t gridCell = getPointGridCell(point);
 
     if(pointGridMap.find(gridCell) == pointGridMap.end()) {
+        // Can insert point in cell if this runs
         pointGridMap[gridCell] = point;
         POINT_COUNT++;
         return gridCell;
     }
 
-    return -1; // Cell already occupied
-
+    return UINT16_MAX; // Cell already occupied
 }
 
 
-ModifiableNestedOctree* ModifiableNestedOctree::createChild(int childIndex) {
-
-    if(children[childIndex]) {
-
-        return children[childIndex].get();
-
+uint32_t ModifiableNestedOctree::createChild(const uint8_t childIndex) {
+    if (children[childIndex] != UINT32_MAX) {
+        return children[childIndex];
     }
-
-
+    const uint32_t parentId = id; 
     const PointXYZ center = boundingBox.center;
-
     PointXYZ min = boundingBox.minCorner;
-
     PointXYZ max = boundingBox.maxCorner;
 
-
+    // Calculate child bounds
     if (childIndex & 1) min.x = center.x; else max.x = center.x;
-
     if (childIndex & 2) min.y = center.y; else max.y = center.y;
-
     if (childIndex & 4) min.z = center.z; else max.z = center.z;
 
-
-    children[childIndex] = std::make_unique<ModifiableNestedOctree>(min, max);
-
-    return children[childIndex].get();
-
-}
-
-
-ModifiableNestedOctree* ModifiableNestedOctree::getChild(int childIndex) const {
-
-    if(childIndex >= 0 && childIndex < 8 && children[childIndex]) {
-
-        return children[childIndex].get();
-
+    uint32_t childId;
+    if (!freeMNOIndices.empty()) {
+        childId = freeMNOIndices.back();
+        MNO[parentId].children[childIndex] = childId;
+        freeMNOIndices.pop_back();
+        MNO[childId] = ModifiableNestedOctree(childId, parentId, min, max);
+    } 
+    else {
+        childId = static_cast<uint32_t>(MNO.size());
+        MNO[parentId].children[childIndex] = childId;
+        MNO.emplace_back(childId, parentId, min, max);
     }
 
-
-    return nullptr; // Child does not exist
-
+    return childId;
 }
 
+uint32_t ModifiableNestedOctree::getChildId(const uint8_t childIndex) const {
+    if(childIndex >= 0 && childIndex < 8 && (children[childIndex] != UINT32_MAX)) {
+        return children[childIndex];
+    }
 
-void ModifiableNestedOctree::setChild(int childIndex, std::unique_ptr<ModifiableNestedOctree> child) {
+    return UINT32_MAX; // Child does not exist
+}
 
+void ModifiableNestedOctree::setChildId(const uint8_t childIndex, const uint32_t childId) {
     if(childIndex >= 0 && childIndex < 8) {
-
-        children[childIndex] = std::move(child);
-
-        return;
-
+        children[childIndex] = childId;
     }
-
-
-    std::cerr << "Unable to set child node at index " << childIndex << std::endl;
-
+    return;
 }
 
 
-int ModifiableNestedOctree::getId() const {
-
+uint32_t ModifiableNestedOctree::getId() const {
     return id;
+}
 
+uint32_t ModifiableNestedOctree::getParentId() const {
+    return parent;
+}
+
+void ModifiableNestedOctree::setParentId(uint32_t parentId) {
+    parent = parentId;
 }
 
 
-int ModifiableNestedOctree::getPointOctant(const PointXYZ& p) const {
-
-    int octant = 0;
+uint8_t ModifiableNestedOctree::getPointOctant(const PointXYZ& p) const {
+    uint8_t octant = 0;
 
     if (p.x > boundingBox.center.x) octant |= 1;
-
     if (p.y > boundingBox.center.y) octant |= 2;
-
     if (p.z > boundingBox.center.z) octant |= 4;
 
     return octant;
-
 }
 
 
-int ModifiableNestedOctree::getPointGridCell(const PointXYZ& p) const {
-    if (!boundingBox.containsPoint(p)) return -1;
+uint16_t ModifiableNestedOctree::getPointGridCell(const PointXYZ& p) const {
+    if (!boundingBox.containsPoint(p)) return UINT16_MAX;
  
     double relX = (p.x - boundingBox.minCorner.x) / (boundingBox.maxCorner.x - boundingBox.minCorner.x);
     double relY = (p.y - boundingBox.minCorner.y) / (boundingBox.maxCorner.y - boundingBox.minCorner.y);
     double relZ = (p.z - boundingBox.minCorner.z) / (boundingBox.maxCorner.z - boundingBox.minCorner.z);
 
-    int gridCoordX = std::min(GRID_LENGTH-1, static_cast<int>(std::floor(relX * GRID_LENGTH)));
-    int gridCoordY = std::min(GRID_LENGTH-1, static_cast<int>(std::floor(relY * GRID_LENGTH)));
-    int gridCoordZ = std::min(GRID_LENGTH-1, static_cast<int>(std::floor(relZ * GRID_LENGTH)));
+    uint16_t gridCoordX = std::min(GRID_LENGTH-1, static_cast<int>(std::floor(relX * GRID_LENGTH)));
+    uint16_t gridCoordY = std::min(GRID_LENGTH-1, static_cast<int>(std::floor(relY * GRID_LENGTH)));
+    uint16_t gridCoordZ = std::min(GRID_LENGTH-1, static_cast<int>(std::floor(relZ * GRID_LENGTH)));
 
     return (gridCoordZ<<(GRID_RESOLUTION*2)) | (gridCoordY<<GRID_RESOLUTION) | (gridCoordX);
-
 }
 
 
@@ -169,7 +147,7 @@ const BoundingBox& ModifiableNestedOctree::getBoundingBox() const {
 }
 
 
-BoundingBox ModifiableNestedOctree::getGridCellBoundingBox(int gridCellIndex) const {
+BoundingBox ModifiableNestedOctree::getGridCellBoundingBox(const uint16_t gridCellIndex) const {
 
     int gridCoordX = gridCellIndex & (GRID_LENGTH - 1);
     int gridCoordY = (gridCellIndex >> GRID_RESOLUTION) & (GRID_LENGTH - 1);
@@ -179,13 +157,11 @@ BoundingBox ModifiableNestedOctree::getGridCellBoundingBox(int gridCellIndex) co
     float cellSizeY = (boundingBox.maxCorner.y - boundingBox.minCorner.y) / GRID_LENGTH;
     float cellSizeZ = (boundingBox.maxCorner.z - boundingBox.minCorner.z) / GRID_LENGTH;
 
-
     PointXYZ cellMin(
         boundingBox.minCorner.x + gridCoordX * cellSizeX,
         boundingBox.minCorner.y + gridCoordY * cellSizeY,
         boundingBox.minCorner.z + gridCoordZ * cellSizeZ
     );
-
 
     PointXYZ cellMax(
         cellMin.x + cellSizeX,
@@ -197,123 +173,111 @@ BoundingBox ModifiableNestedOctree::getGridCellBoundingBox(int gridCellIndex) co
 }
 
 
-void expandRoot(std::unique_ptr<ModifiableNestedOctree>& root, const BoundingBox& box) {
+void ModifiableNestedOctree::expandRoot(const BoundingBox& box) {
+    if(MNO.size() == 0) {
+        MNO.reserve(10000);
+        ModifiableNestedOctree::MNO.emplace_back(ModifiableNestedOctree::ROOT_ID, UINT16_MAX, PointXYZ(0, 0, 0), PointXYZ(1, 1, 1));
+    }
+    // Check if current root contains the box, if not, expand root until it does
+    if ((ROOT_ID == UINT32_MAX) || (MNO[ROOT_ID].getBoundingBox().containsPoint(box.minCorner) && MNO[ROOT_ID].getBoundingBox().containsPoint(box.maxCorner))) {
+        return;
+    }
 
-    if (!root) return;
-
-    auto currentRoot = std::move(root);
-    ModifiableNestedOctree* currentRootPtr = currentRoot.get();
-
-
-     // Check if current root contains the box, if not, expand root until it does
-
-     if (currentRootPtr->getBoundingBox().containsPoint(box.minCorner) && currentRootPtr->getBoundingBox().containsPoint(box.maxCorner)) {
-         root = std::move(currentRoot);
-         return;
-     }
-
-    PointXYZ min = currentRoot->getBoundingBox().getMinCorner();
-    PointXYZ max = currentRoot->getBoundingBox().getMaxCorner();
+    PointXYZ min = MNO[ROOT_ID].getBoundingBox().getMinCorner();
+    PointXYZ max = MNO[ROOT_ID].getBoundingBox().getMaxCorner();
 
     while (box.minCorner.x < min.x || box.maxCorner.x > max.x ||
            box.minCorner.y < min.y || box.maxCorner.y > max.y ||
            box.minCorner.z < min.z || box.maxCorner.z > max.z) {
 
         float centerX = (min.x + max.x) * 0.5f;
-        float centerY = (min.y + max.y) * 0.5f;
+        float centerY = (min.y + max.y) * 0.5f; // Clean this up. Add MNO{ROOT_ID}.bb as variable
         float centerZ = (min.z + max.z) * 0.5f;
 
-        int childIdx = 0;
-
+        uint8_t childIdx = 0;
         if (box.center.x > centerX) childIdx |= 1;
         if (box.center.y > centerY) childIdx |= 2;
         if (box.center.z > centerZ) childIdx |= 4;
 
-
         // The current root will become the child of the new parent.
-
         // The "expansion direction" is the opposite of where the current root will sit.
 
-        int posInParent = childIdx ^ 7;
+        uint8_t posInParent = childIdx ^ 7;
 
         float sizeX = max.x - min.x;
         float sizeY = max.y - min.y;
         float sizeZ = max.z - min.z;
 
-
         if (childIdx & 1) max.x += sizeX; else min.x -= sizeX;
         if (childIdx & 2) max.y += sizeY; else min.y -= sizeY;
         if (childIdx & 4) max.z += sizeZ; else min.z -= sizeZ;
+        
+        uint32_t parentId = MNO.size();
+        if(!freeMNOIndices.empty()) {
+            parentId = freeMNOIndices.back();
+            freeMNOIndices.pop_back();
+            MNO[parentId] = ModifiableNestedOctree(parentId, UINT32_MAX, min, max);
+        }
+        else {
+            MNO.emplace_back(parentId, UINT32_MAX, min, max);
+        }
 
-
-        auto parent = std::make_unique<ModifiableNestedOctree>(min, max);
-        parent->setChild(posInParent, std::move(currentRoot));
-        currentRoot = std::move(parent);
+        MNO[ROOT_ID].setParentId(parentId);
+        MNO[parentId].setChildId(posInParent, ROOT_ID);
+        ROOT_ID = parentId;
+        min = MNO[ROOT_ID].getBoundingBox().getMinCorner();
+        max = MNO[ROOT_ID].getBoundingBox().getMaxCorner();
     }
-
-    root = std::move(currentRoot);
-
 }
 
 
-void ModifiableNestedOctree::repairLOD(ModifiableNestedOctree* originalRoot) {
-    if((this == originalRoot) || originalRoot->pointGridMap.empty()) return;
+void ModifiableNestedOctree::repairLOD(uint32_t originalRootId) {
+    if((id == originalRootId) || MNO[originalRootId].pointGridMap.empty()) return;
 
     // Locate gridCells in the current node that can be filled by points from old root
-
-    robin_hood::unordered_flat_set<int> fillableCells;
-    for (const auto& [gridCell, point] : originalRoot->pointGridMap) {
-        int cell = insertPointInGrid(point);
-        if(cell != -1) {
+    robin_hood::unordered_flat_set<uint16_t> fillableCells;
+    for (const auto& [gridCell, point] : MNO[originalRootId].pointGridMap) {
+        uint16_t cell = insertPointInGrid(point);
+        if(cell != UINT16_MAX) {
             fillableCells.insert(cell);
             pointGridMap.erase(cell);
         }
     }
 
-
-   
-
     for(const auto& cell : fillableCells) {
-        ModifiableNestedOctree* parentNode = this;
-        ModifiableNestedOctree* leafNode = this;
+        uint32_t parentNodeId = id;
+        uint32_t leafNodeId = id;
+
         const BoundingBox cellBoundingBox = getGridCellBoundingBox(cell);
-
-        int leafNodeParentIndex = -1;
-
-       
-
-        // Determine which child octant the center of the grid cell belongs to relative to the leaf node
-        int childIndex = leafNode->getPointOctant(cellBoundingBox.center);
+        uint8_t leafNodeParentIndex = UINT8_MAX;
+        uint8_t childIndex = MNO[leafNodeId].getPointOctant(cellBoundingBox.center); // Determine which child octant the center of the grid cell belongs to relative to the leaf node
 
         // For each grid cell that needs to be filled, find a leaf node that contains its center
-        while (leafNode->getChild(childIndex)) {
-            parentNode = leafNode;
-            leafNode = leafNode->getChild(childIndex);
+        while (MNO[leafNodeId].getChildId(childIndex) != UINT32_MAX) {
+            parentNodeId = leafNodeId;
+            leafNodeId = MNO[parentNodeId].getChildId(childIndex);
             leafNodeParentIndex = childIndex;
-            childIndex = leafNode->getPointOctant(cellBoundingBox.center);
+            childIndex = MNO[leafNodeId].getPointOctant(cellBoundingBox.center);
         }
-
-       
 
         // Check if leaf node has any children
         bool leafNodeHasChildren = false;
         for (int i = 0; i < 8; ++i) {
-            if(leafNode->getChild(i)) {
+            if(MNO[leafNodeId].getChildId(i) != UINT32_MAX) {
                 leafNodeHasChildren = true;
                 break;
             }
         }
 
         // If leaf node has no children, find point in its grid and add to cell for this node and delete from leaf node
-        if(!leafNodeHasChildren) {
-            for (const auto& [gridCell, point] : leafNode->pointGridMap) {
+        if(!leafNodeHasChildren && (leafNodeId != id)) {
+            for (const auto& [gridCell, point] : MNO[leafNodeId].pointGridMap) {
                 if (cellBoundingBox.containsPoint(point)) {
-
                     insertPointInGrid(point);
-                    leafNode->pointGridMap.erase(gridCell);
-
-                    if(leafNode->pointGridMap.empty()) {
-                        parentNode->setChild(leafNodeParentIndex, nullptr);
+                    MNO[leafNodeId].pointGridMap.erase(gridCell);
+                    if(MNO[leafNodeId].pointGridMap.empty()) {
+                        freeMNOIndices.emplace_back(leafNodeId);
+                        MNO[parentNodeId].setChildId(leafNodeParentIndex, UINT32_MAX);
                     }
                     break;
                 }
@@ -321,22 +285,20 @@ void ModifiableNestedOctree::repairLOD(ModifiableNestedOctree* originalRoot) {
         }
     }
 
-
-    PointXYZ originalRootCenter = originalRoot->getBoundingBox().center;
+    PointXYZ originalRootCenter = MNO[originalRootId].getBoundingBox().center;
     for (int i = 0; i < 8; ++i) {
-        if (children[i] && children[i]->getBoundingBox().containsPoint(originalRootCenter) && children[i].get() != originalRoot) {
-            children[i]->repairLOD(originalRoot);
+        if ((children[i] != UINT32_MAX) && MNO[children[i]].getBoundingBox().containsPoint(originalRootCenter) && MNO[children[i]].getId() != originalRootId) {
+            MNO[children[i]].repairLOD(originalRootId);
         }
     }
 
 }
 
-
 void* ModifiableNestedOctree::serializeForR3F(const Camera& c, int maxDepth, float minPixelSize) const {
     std::vector<float> positions;
     positions.reserve(POINT_COUNT*3);
 
-    compileR3FTree(positions, c, 0, maxDepth, minPixelSize);
+    compileR3FTree(positions, c, 0, maxDepth, minPixelSize); // CONVERT TO BFS
 
     uint32_t payloadBytes = positions.size() * sizeof(float);
     uint32_t totalBytes = sizeof(uint32_t) + payloadBytes;
@@ -355,7 +317,6 @@ void ModifiableNestedOctree::compileR3FTree(std::vector<float>& out, const Camer
     
     if ((depth > maxDepth) || !boundingBox.inCameraFrustum(c) || (boundingBox.getScreenProjectedSize(c) < minPixelSize)) return;
 
-
     // Add points from this node's grid
     for (const auto& points : pointGridMap) {
         const PointXYZ& p = points.second;
@@ -366,8 +327,8 @@ void ModifiableNestedOctree::compileR3FTree(std::vector<float>& out, const Camer
 
     // Recurse into children
     for (int i = 0; i < 8; ++i) {
-        if (children[i]) {
-            children[i]->compileR3FTree(out, c, depth+1, maxDepth, minPixelSize);
+        if (children[i] != UINT32_MAX) {
+            MNO[children[i]].compileR3FTree(out, c, depth+1, maxDepth, minPixelSize);
         }
     }
 }
@@ -379,6 +340,11 @@ void ModifiableNestedOctree::printNode() const {
     std::cout << "ID:" << id << std::endl;
     std::cout << "MinCorner:" << boundingBox.minCorner << std::endl;
     std::cout << "MaxCorner:" << boundingBox.maxCorner << std::endl;
+    std::cout << "Chilren: ";
+    for (int i = 0; i < 8; i++) {
+        std::cout << children[i] << " ";
+    }
+    std::cout << std::endl;
 
     for (const auto& points : pointGridMap) {
         std::cout << "\tPoint (" << points.first <<"):" << points.second << std::endl;
@@ -419,8 +385,8 @@ void ModifiableNestedOctree::printTreeToFileHelper(std::ofstream& out, int depth
 
     // Recurse into children
     for (int i = 0; i < 8; ++i) {
-        if (children[i]) {
-            children[i]->printTreeToFileHelper(out, depth + 1);
+        if (children[i] != UINT32_MAX) {
+            MNO[children[i]].printTreeToFileHelper(out, depth + 1);
         }
     }
 } 

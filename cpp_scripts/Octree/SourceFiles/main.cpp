@@ -93,7 +93,6 @@ void loadPointsXYZFromBinaryPLY(std::vector<std::unique_ptr<PointXYZ>>& points, 
 
 
 int main() {
-    auto root = std::make_unique<ModifiableNestedOctree>(PointXYZ(0, 0, 0), PointXYZ(1, 1, 1));
     BoundingBox bb = BoundingBox(PointXYZ(-6, -11, 2), PointXYZ(4, 12, 3));
 
     Matrix4x4 worldToCamera = {{
@@ -108,14 +107,12 @@ int main() {
         {{0, 0, 1, 0}}, 
         {{0, 0, 0, 1}}
     }};
-    Camera c = {worldToCamera, projection, 1280, 161.0500030517578};
-    
+    Camera c = {0, 0, 0, worldToCamera, projection, 1280, 161.0500030517578};
     
     std::vector<std::unique_ptr<PointXYZ>> points;
     points.reserve(5000001);
     loadPointsXYZFromBinaryPLY(points, "../assets/oak_5M.ply");
 
-    
     //Get bounding box of all points
     PointXYZ minPoint = *(points[0]);
     PointXYZ maxPoint = *(points[0]);
@@ -131,15 +128,16 @@ int main() {
 
     std::cout << "Min Point: " << minPoint << std::endl;
     std::cout << "Max Point: " << maxPoint << std::endl;
-
     
-    ModifiableNestedOctree* originalRootPtr = root.get();
-    expandRoot(root, BoundingBox(minPoint, maxPoint));
+    uint16_t originalRootId = ModifiableNestedOctree::ROOT_ID;
+    ModifiableNestedOctree::expandRoot(BoundingBox(minPoint, maxPoint));
+
     for (const auto& p : points) {
-        root->insertPoint(*p);
+        ModifiableNestedOctree::MNO[ModifiableNestedOctree::ROOT_ID].insertPoint(*p);
     }
-    root->repairLOD(originalRootPtr);
-    root->printNode();
+
+    ModifiableNestedOctree::MNO[ModifiableNestedOctree::ROOT_ID].repairLOD(originalRootId);
+    ModifiableNestedOctree::MNO[ModifiableNestedOctree::ROOT_ID].printNode();
     
     return 0;
 }
