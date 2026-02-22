@@ -130,9 +130,9 @@ uint8_t ModifiableNestedOctree::getPointOctant(const PointXYZ& p) const {
 uint16_t ModifiableNestedOctree::getPointGridCell(const PointXYZ& p) const {
     if (!boundingBox.containsPoint(p)) return UINT16_MAX;
  
-    double relX = (p.x - boundingBox.minCorner.x) / (boundingBox.maxCorner.x - boundingBox.minCorner.x);
-    double relY = (p.y - boundingBox.minCorner.y) / (boundingBox.maxCorner.y - boundingBox.minCorner.y);
-    double relZ = (p.z - boundingBox.minCorner.z) / (boundingBox.maxCorner.z - boundingBox.minCorner.z);
+    double relX = (p.x - boundingBox.minCorner.x) * boundingBox.inv_length;
+    double relY = (p.y - boundingBox.minCorner.y) * boundingBox.inv_width;
+    double relZ = (p.z - boundingBox.minCorner.z) * boundingBox.inv_height;
 
     uint16_t gridCoordX = std::min(GRID_LENGTH-1, static_cast<int>(std::floor(relX * GRID_LENGTH)));
     uint16_t gridCoordY = std::min(GRID_LENGTH-1, static_cast<int>(std::floor(relY * GRID_LENGTH)));
@@ -153,9 +153,9 @@ BoundingBox ModifiableNestedOctree::getGridCellBoundingBox(const uint16_t gridCe
     int gridCoordY = (gridCellIndex >> GRID_RESOLUTION) & (GRID_LENGTH - 1);
     int gridCoordZ = (gridCellIndex >> (2 * GRID_RESOLUTION)) & (GRID_LENGTH - 1);
 
-    float cellSizeX = (boundingBox.maxCorner.x - boundingBox.minCorner.x) / GRID_LENGTH;
-    float cellSizeY = (boundingBox.maxCorner.y - boundingBox.minCorner.y) / GRID_LENGTH;
-    float cellSizeZ = (boundingBox.maxCorner.z - boundingBox.minCorner.z) / GRID_LENGTH;
+    float cellSizeX = boundingBox.length * INV_GRID_LENGTH;
+    float cellSizeY = boundingBox.width * INV_GRID_LENGTH;
+    float cellSizeZ = boundingBox.height * INV_GRID_LENGTH;
 
     PointXYZ cellMin(
         boundingBox.minCorner.x + gridCoordX * cellSizeX,
@@ -296,41 +296,62 @@ void ModifiableNestedOctree::repairLOD(uint32_t originalRootId) {
 
 void* ModifiableNestedOctree::serializeForR3F(const Camera& c, int maxDepth, float minPixelSize) const {
     std::vector<float> positions;
-    positions.reserve(POINT_COUNT*3);
+    positions.reserve(POINT_COUNT * 3); // Assumes POINT_COUNT is the estimated total
 
-    compileR3FTree(positions, c, 0, maxDepth, minPixelSize); // CONVERT TO BFS
+    // Define a lightweight struct to hold traversal state
+    struct NodeState {
+        const ModifiableNestedOctree* node;
+        int depth;
+    };
 
-    uint32_t payloadBytes = positions.size() * sizeof(float);
-    uint32_t totalBytes = sizeof(uint32_t) + payloadBytes;
-    uint8_t* buffer = (uint8_t*)malloc(totalBytes);
+    // Use a flat std::vector as a queue for cache-friendly BFS traversal
+    std::vector<NodeState> queue;
+    queue.reserve(128); // Pre-allocate to prevent early reallocations
+    queue.push_back({this, 0});
 
-    std::memcpy(buffer, &payloadBytes, sizeof(uint32_t));
-    std::memcpy(buffer + sizeof(uint32_t), positions.data(), payloadBytes);
-
-    return buffer;
-}
-
-
- // Helper function to compile MNO into binary point cloud stream /*Need to cleanup this function*/
-
-void ModifiableNestedOctree::compileR3FTree(std::vector<float>& out, const Camera& c, int depth, int maxDepth, float minPixelSize) const {
+    size_t head = 0; // Tracks the front of the queue
     
-    if ((depth > maxDepth) || !boundingBox.inCameraFrustum(c) || (boundingBox.getScreenProjectedSize(c) < minPixelSize)) return;
+    // Iterative BFS Traversal
+    while (head < queue.size()) {
+        const NodeState current = queue[head++];
+        const ModifiableNestedOctree* currNode = current.node;
 
-    // Add points from this node's grid
-    for (const auto& points : pointGridMap) {
-        const PointXYZ& p = points.second;
-        out.push_back(p.x);
-        out.push_back(p.y);
-        out.push_back(p.z);
-    }
+        // Culling checks
+        if (current.depth > maxDepth || 
+            !currNode->boundingBox.inCameraFrustum(c) || 
+            (currNode->boundingBox.getScreenProjectedSize(c) < minPixelSize)) {
+            continue;
+        }
 
-    // Recurse into children
-    for (int i = 0; i < 8; ++i) {
-        if (children[i] != UINT32_MAX) {
-            MNO[children[i]].compileR3FTree(out, c, depth+1, maxDepth, minPixelSize);
+        // Add points from this node's grid
+        for (const auto& kv : currNode->pointGridMap) {
+            const PointXYZ& p = kv.second; // Note: Use `const auto& [key, p]` if on C++17
+            positions.push_back(p.x);
+            positions.push_back(p.y);
+            positions.push_back(p.z);
+        }
+
+        // Enqueue children for the next depth layer
+        for (int i = 0; i < 8; ++i) {
+            uint32_t childIndex = currNode->children[i];
+            if (childIndex != UINT32_MAX) {
+                queue.push_back({&MNO[childIndex], current.depth + 1});
+            }
         }
     }
+
+    // Allocate and format binary stream
+    uint32_t payloadBytes = positions.size() * sizeof(float);
+    uint32_t totalBytes = sizeof(uint32_t) + payloadBytes;
+    
+    // Allocate the buffer (consider using a custom allocator if this is called frequently)
+    uint8_t* buffer = static_cast<uint8_t*>(std::malloc(totalBytes));
+    if (buffer) {
+        std::memcpy(buffer, &payloadBytes, sizeof(uint32_t));
+        std::memcpy(buffer + sizeof(uint32_t), positions.data(), payloadBytes);
+    }
+
+    return buffer;
 }
 
 

@@ -13,6 +13,12 @@
  BoundingBox::BoundingBox() : minCorner(PointXYZ{0,0,0}), maxCorner(PointXYZ{0,0,0}) {
 
     center = (minCorner+maxCorner)/2;
+    height = 0;
+    width = 0;
+    length = 0;
+    inv_height = 0;
+    inv_width = 0;
+    inv_length = 0;
 
 }
 
@@ -21,7 +27,13 @@ BoundingBox::BoundingBox(
     const PointXYZ& maxCorner_
 ) : minCorner(minCorner_), maxCorner(maxCorner_) {
 
+    length = (maxCorner.x - minCorner.x);
+    width = (maxCorner.y - minCorner.y);
+    height = (maxCorner.z - minCorner.z);
     center = (minCorner_+maxCorner_)/2;
+    inv_length = 1/(maxCorner.x - minCorner.x);
+    inv_width = 1/(maxCorner.y - minCorner.y);
+    inv_height = 1/(maxCorner.z - minCorner.z);
 
 }
 
@@ -34,29 +46,16 @@ bool BoundingBox::containsPoint(const PointXYZ& p) const {
 }
 
 bool BoundingBox::inCameraFrustum(const Camera& c) const {
-    // Note: Make sure c.setProjectionViewMatrix() has been called before this runs!
-    const auto& m = c.projectionViewMatrix;
-
-    // Extract the 6 frustum planes from the View-Projection matrix.
-    // Each plane equation is in the form: Ax + By + Cz + D = 0
-    float planes[6][4] = {
-        { m[3][0] + m[0][0], m[3][1] + m[0][1], m[3][2] + m[0][2], m[3][3] + m[0][3] }, // Left
-        { m[3][0] - m[0][0], m[3][1] - m[0][1], m[3][2] - m[0][2], m[3][3] - m[0][3] }, // Right
-        { m[3][0] + m[1][0], m[3][1] + m[1][1], m[3][2] + m[1][2], m[3][3] + m[1][3] }, // Bottom
-        { m[3][0] - m[1][0], m[3][1] - m[1][1], m[3][2] - m[1][2], m[3][3] - m[1][3] }, // Top
-        { m[3][0] + m[2][0], m[3][1] + m[2][1], m[3][2] + m[2][2], m[3][3] + m[2][3] }, // Near
-        { m[3][0] - m[2][0], m[3][1] - m[2][1], m[3][2] - m[2][2], m[3][3] - m[2][3] }  // Far
-    };
 
     // Test the bounding box against each plane
     for (int i = 0; i < 6; ++i) {
         // Find the "p-vertex" - the corner of the AABB furthest along the plane's normal direction
-        float px = (planes[i][0] > 0.0f) ? maxCorner.x : minCorner.x;
-        float py = (planes[i][1] > 0.0f) ? maxCorner.y : minCorner.y;
-        float pz = (planes[i][2] > 0.0f) ? maxCorner.z : minCorner.z;
+        float px = (c.planes[i][0] > 0.0f) ? maxCorner.x : minCorner.x;
+        float py = (c.planes[i][1] > 0.0f) ? maxCorner.y : minCorner.y;
+        float pz = (c.planes[i][2] > 0.0f) ? maxCorner.z : minCorner.z;
 
         // Calculate the distance from the p-vertex to the plane
-        float distance = planes[i][0] * px + planes[i][1] * py + planes[i][2] * pz + planes[i][3];
+        float distance = c.planes[i][0] * px + c.planes[i][1] * py + c.planes[i][2] * pz + c.planes[i][3];
 
         // If the p-vertex is on the negative side of the plane, 
         // the entire bounding box is outside the frustum.

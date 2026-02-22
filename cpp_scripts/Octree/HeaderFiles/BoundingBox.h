@@ -19,6 +19,14 @@ struct BoundingBox {
 
     /** The major/maximal corner of the cube */
     PointXYZ center;
+    
+    float width;
+    float height;
+    float length;
+
+    float inv_width;
+    float inv_height;
+    float inv_length;
 
 
     /**

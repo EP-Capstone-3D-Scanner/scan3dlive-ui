@@ -78,6 +78,20 @@ void Camera::setProjectionMatrix(
 void Camera::setProjectionViewMatrix() {
 
     projectionViewMatrix = projection * viewMatrixInverse;
+
+    // Note: Make sure c.setProjectionViewMatrix() has been called before this runs!
+    const auto& m = projectionViewMatrix;
+
+    // Extract the 6 frustum planes from the View-Projection matrix.
+    // Each plane equation is in the form: Ax + By + Cz + D = 0
+    float planes[6][4] = {
+        { m[3][0] + m[0][0], m[3][1] + m[0][1], m[3][2] + m[0][2], m[3][3] + m[0][3] }, // Left
+        { m[3][0] - m[0][0], m[3][1] - m[0][1], m[3][2] - m[0][2], m[3][3] - m[0][3] }, // Right
+        { m[3][0] + m[1][0], m[3][1] + m[1][1], m[3][2] + m[1][2], m[3][3] + m[1][3] }, // Bottom
+        { m[3][0] - m[1][0], m[3][1] - m[1][1], m[3][2] - m[1][2], m[3][3] - m[1][3] }, // Top
+        { m[3][0] + m[2][0], m[3][1] + m[2][1], m[3][2] + m[2][2], m[3][3] + m[2][3] }, // Near
+        { m[3][0] - m[2][0], m[3][1] - m[2][1], m[3][2] - m[2][2], m[3][3] - m[2][3] }  // Far
+    };
     
 }
 

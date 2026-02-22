@@ -29,6 +29,9 @@ struct Camera {
     /** Client screen height */
     float screenHeight;
 
+    /** Screen planes */
+    float planes[6][4];
+
     /**
      * @brief Constructs a camera object from renderer matrices and screen dimensions
      */

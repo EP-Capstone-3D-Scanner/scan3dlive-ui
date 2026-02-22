@@ -20,8 +20,9 @@ class ModifiableNestedOctree {
 private:
 
     /** Resolution of MNO Grid */
-    static const int GRID_RESOLUTION = 3;
+    static const int GRID_RESOLUTION = 5;
     static const int GRID_LENGTH = 1 << GRID_RESOLUTION;
+    static constexpr float INV_GRID_LENGTH = 1.0f / static_cast<float>(GRID_LENGTH);
     static const int GRID_CELL_COUNT = GRID_LENGTH*GRID_LENGTH*GRID_LENGTH;
     inline static std::vector<uint32_t> freeMNOIndices;
 

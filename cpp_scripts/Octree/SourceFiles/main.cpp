@@ -8,6 +8,8 @@
 #include <sstream>
 #include <vector>
 #include <string>
+#include "robin_hood.h"
+
 
 
 /**
@@ -139,6 +141,10 @@ int main() {
     ModifiableNestedOctree::MNO[ModifiableNestedOctree::ROOT_ID].repairLOD(originalRootId);
     ModifiableNestedOctree::MNO[ModifiableNestedOctree::ROOT_ID].printNode();
     
+    std::cout << sizeof(ModifiableNestedOctree) * ModifiableNestedOctree::MNO.size() << std::endl;
+    std::cout << sizeof(PointXY)*ModifiableNestedOctree::POINT_COUNT << std::endl;
+    std::cout << sizeof(robin_hood::unordered_flat_map<uint16_t, PointXYZ>) << std::endl;
+
     return 0;
 }
 
