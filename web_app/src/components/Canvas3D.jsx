@@ -104,7 +104,7 @@ function Canvas3D({
   setDisplaySettings,
 }) {
   const binaryFile = "point_clouds/octree_bin10.bin";
-  const binaryPLYFile = "point_clouds/oak_5M.ply";
+  const binaryPLYFile = "/point_clouds/oak_5M.ply";
 
   return (
     <div id="Canvas3D" className="w-100">
@@ -125,7 +125,14 @@ function Canvas3D({
           visible={displaySettings["gridVisible"]} 
           args={[10]} 
         />
-        <OrbitControls />
+        <OrbitControls></OrbitControls>
+      {/** 
+      <FirstPersonControls
+        movementSpeed={5} 
+        noFly={false}
+        lookSpeed={0.05}   
+        lookVertical={true}
+      />*/}
         <ambientLight intensity={1} />
         <directionalLight position={[5, 5, 5]} />
         {/*<OctreeTest 
