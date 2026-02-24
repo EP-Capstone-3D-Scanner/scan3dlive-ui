@@ -1,4 +1,4 @@
-import OctreeManager from '../modules/OctreeModuleLinearTest.js';
+import OctreeManager from '../modules/OctreeModuleColorTest.js';
 
 let OctreeHelper = null;
 let lastVertexCount = 0;
@@ -16,34 +16,26 @@ OctreeManager({
 self.onmessage = async (e) => {
   const { type, payload, buffer } = e.data;
 
-// INITIAL LOAD
-// octree.worker.js
-
-if (type === 'INIT') {
-  try {
-    const res = await fetch(payload.url);
-    const arrayBuffer = await res.arrayBuffer();
-    const dataPtr = OctreeHelper._malloc(arrayBuffer.byteLength);
-    OctreeHelper.HEAPU8.set(new Uint8Array(arrayBuffer), dataPtr);
-
-    const headerSize = OctreeHelper._loadPointsXYZFromBinaryPLY(
-     dataPtr, 
-     arrayBuffer.byteLength
-    );
-
-    maxPointsCapacity = Math.floor((arrayBuffer.byteLength - headerSize) / 12); 
-    OctreeHelper._free(dataPtr);
-
-    
-    self.postMessage({ 
-      type: 'INIT_DONE', 
-      payload: { maxPoints: maxPointsCapacity } 
-    });
-  } catch (err) {
-    console.error("Worker Init Error:", err);
+  // INITIAL LOAD
+  // octree.worker.js
+  if (type === 'INIT') {
+    try {
+      const res = await fetch(payload.url);
+      const arrayBuffer = await res.arrayBuffer();
+      const dataPtr = OctreeHelper._malloc(arrayBuffer.byteLength);
+      OctreeHelper.HEAPU8.set(new Uint8Array(arrayBuffer), dataPtr);
+      const headerSize = OctreeHelper._loadPointsXYZFromBinaryPLY(dataPtr, arrayBuffer.byteLength); // TODO: Update this function to return the number of points
+      maxPointsCapacity = Math.floor((arrayBuffer.byteLength - headerSize) / 15);
+      OctreeHelper._free(dataPtr);
+      
+      self.postMessage({ 
+        type: 'INIT_DONE', 
+        payload: { maxPoints: maxPointsCapacity } 
+      });
+    } catch (err) {
+      console.error("Worker Init Error:", err);
+    }
   }
-}
-
 
   // PER-FRAME UPDATE
   if (type === 'UPDATE') {
@@ -59,16 +51,14 @@ if (type === 'INIT') {
       pm[2], pm[6], pm[10], pm[14], pm[3], pm[7], pm[11], pm[15],
       aspectRatio
     );
-
     const start = performance.now()
     const dataNodePtr = OctreeHelper._getVisibleOctreeNodes(maxLOD, 1);
     const end = performance.now()
     console.log(`Execution time was ${end-start} milliseconds`)
 
     const dataBytes = OctreeHelper.HEAPU32[dataNodePtr >> 2];
-    const vertexCount = Math.min(Math.floor((dataBytes / 4) / 3), maxPointsCapacity);
+    const vertexCount = Math.min(Math.floor((dataBytes / 4) / 4), maxPointsCapacity);
     console.log(`Vertex Count: ${vertexCount}`)
-    const toCopy = vertexCount * 3;
     const startIndex = (dataNodePtr + 4) >> 2;
 
     const diff = Math.abs(vertexCount - lastVertexCount);
@@ -77,7 +67,7 @@ if (type === 'INIT') {
     // Only update if change is significant or LOD changed
     if (previousMaxLOD !== maxLOD  || lastVertexCount === 0) {
       const dst = new Float32Array(buffer);
-      dst.set(OctreeHelper.HEAPF32.subarray(startIndex, startIndex + toCopy));
+      dst.set(OctreeHelper.HEAPF32.subarray(startIndex, startIndex +  vertexCount * 4));
 
       self.postMessage({
         type: 'UPDATE_DONE',

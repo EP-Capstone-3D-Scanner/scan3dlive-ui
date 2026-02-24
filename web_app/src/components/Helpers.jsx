@@ -54,6 +54,32 @@ function OctreeBoxes({ boxes }) {
   )
 }
 
+function Model({chunk, position, annotations, setAnnotations, selectedModel, setSelectedModel}) {
+  const geometry = useLoader(PLYLoader, 'point_clouds/test1.ply');
+
+  const handlePointsClick = (e) => {
+    e.stopPropagation();     // keep event from hitting other objects
+    setSelectedModel(chunk)
+    console.log(selectedModel)
+    if(e.shiftKey) {
+      const id = annotations.size ? Math.max(...annotations.keys()) + 1 : 1;
+      setAnnotations(prev=> new Map(prev).set(id, {"Model": chunk, "label":id, "position": e.point}))
+      console.log({"Model": chunk, "label":id, "position": e.point})
+    }
+  }
+  
+  return (
+    <points onClick={handlePointsClick} rotation={[-Math.PI/2, 0, Math.PI/2]}  position={position} geometry={geometry} scale={2}>
+      <pointsMaterial
+        sizeAttenuation={true}
+        size={0.00001}          // size of each point
+        vertexColors         // if your PLY has colors
+        color="white"        // fallback color
+      />
+    </points>
+  );
+}
+
 /* THROTTLING CODE
 
 // Put this at the start of the compenent

@@ -23,12 +23,11 @@ function App() {
     'backgroundColor':'#000000',
     'backgroundVisible':false,
   })
-  const [selectedModel, setSelectedModel] = useState(null);
   const [clips, setClips] = useState({0:{type:"Cube", position:[1, 1, 1], rotation:160, size:100}});
   const [annotations, setAnnotations] = useState(new Map());
   
   //useWebSocketClient({url: "ws://192.168.2.15:8001", setSidebarDisplay: setSidebarDisplay});
-  useWebSocketClient({url: "ws://127.0.0.1:8001", setSidebarDisplay: setSidebarDisplay});
+  //useWebSocketClient({url: "ws://127.0.0.1:8001", setSidebarDisplay: setSidebarDisplay});
   return (
     <div 
       id="web_app" 
@@ -51,8 +50,6 @@ function App() {
         className="d-flex flex-row flex-grow-1 overflow-hidden"
       >
         <Canvas3D 
-          selectedModel={selectedModel} 
-          setSelectedModel={setSelectedModel}
           annotations={annotations}
           setAnnotations={setAnnotations}
           displaySettings={displaySettings}

@@ -4,15 +4,15 @@ import { useFrame, useThree } from '@react-three/fiber'
 // Vite-specific worker import
 import OctreeWorker from './octree.worker.js?worker' 
 
-function OctreeTest({ position, rotation, url, displaySettings }) {
+
+function OctreeTest({ position, rotation, url, octreeMaxLOD }) {
   const { invalidate, size } = useThree()
   
   const [isLoaded, setIsLoaded] = useState(false)
   const workerRef = useRef(null)
   const geometryRef = useRef(new THREE.BufferGeometry())
   const positionAttrRef = useRef(null)
-  
-  // High-performance shared memory
+  const colorAttrRef = useRef(null)
   const transferBufferRef = useRef(null) 
   const isWorkerBusy = useRef(false)
   const aspectRatio = useRef(size.width / size.height)
@@ -22,11 +22,12 @@ function OctreeTest({ position, rotation, url, displaySettings }) {
   }, [size.width, size.height])
 
   useEffect(() => {
-    // Instantiate the worker using the Vite constructor
+    invalidate();
     const worker = new OctreeWorker()
     workerRef.current = worker
 
     worker.onmessage = (e) => {
+      setTimeout(() => invalidate(), 10);
       const { type, payload, buffer } = e.data
 
       if (type === 'READY') {
@@ -34,70 +35,65 @@ function OctreeTest({ position, rotation, url, displaySettings }) {
       } 
       
       else if (type === 'INIT_DONE') {
-        const { maxPoints } = payload
-        // 3 floats (x,y,z) * 4 bytes per float
-        transferBufferRef.current = new ArrayBuffer(maxPoints * 3 * 4)
-        
-        const initialArray = new Float32Array(maxPoints * 3)
-        positionAttrRef.current = new THREE.BufferAttribute(initialArray, 3)
-        geometryRef.current.setAttribute('position', positionAttrRef.current)
-        geometryRef.current.computeBoundingSphere();
-        setIsLoaded(true)
-        console.log('ran')
-        invalidate()
+        const { maxPoints } = payload;
+        const byteSize = maxPoints * 4 * 4;
+
+        const displayArray = new Float32Array(new ArrayBuffer(byteSize));
+        const positionBuffer = new THREE.InterleavedBuffer(displayArray, 4);
+        const colorBuffer = new THREE.InterleavedBuffer(new Uint8Array(displayArray.buffer), 16);
+        positionAttrRef.current = new THREE.InterleavedBufferAttribute(positionBuffer, 3, 0);
+        colorAttrRef.current = new THREE.InterleavedBufferAttribute(colorBuffer, 4, 12, true);
+
+        geometryRef.current.setAttribute('position', positionAttrRef.current);
+        geometryRef.current.setAttribute('color', colorAttrRef.current);
+        transferBufferRef.current = new ArrayBuffer(byteSize);
+        setIsLoaded(true);
       }
-      
+
       else if (type === 'UPDATE_DONE') {
-        // Ownership of 'buffer' is now back in the Main Thread
-        const view = new Float32Array(buffer)
-        positionAttrRef.current.array.set(view)
-        positionAttrRef.current.needsUpdate = true
-        geometryRef.current.setDrawRange(0, payload.vertexCount)
-        geometryRef.current.computeBoundingSphere();
-        transferBufferRef.current = buffer // Store for next frame
-        isWorkerBusy.current = false
-        invalidate()
+        positionAttrRef.current.data.set(new Float32Array(buffer)) 
+        positionAttrRef.current.data.needsUpdate = true;
+        colorAttrRef.current.data.needsUpdate = true;
+        geometryRef.current.setDrawRange(0, payload.vertexCount);
+        transferBufferRef.current = buffer;
+        isWorkerBusy.current = false;
       }
-      
+
       else if (type === 'NO_UPDATE') {
-        transferBufferRef.current = buffer
-        isWorkerBusy.current = false
+        //positionAttrRef.current.data.set(new Float32Array(buffer)); 
+        //colorAttrRef.current.data.set(new Uint8Array(buffer));
+        transferBufferRef.current = buffer;
+        isWorkerBusy.current = false;
       }
     }
 
-    return () => worker.terminate()
+    return () => {worker.terminate()}
   }, [url])
 
   useFrame((state) => {
-    invalidate()
     if (!isLoaded || isWorkerBusy.current || !transferBufferRef.current) return
-
     isWorkerBusy.current = true
     
-    // Capture camera data (must be clones or simple objects, not class instances)
     const cameraData = {
       pos: { x: state.camera.position.x, y: state.camera.position.y, z: state.camera.position.z },
       vmi: [...state.camera.matrixWorldInverse.elements],
       pm: [...state.camera.projectionMatrix.elements],
       aspectRatio: aspectRatio.current,
-      maxLOD: displaySettings['octreeMaxLOD']
+      maxLOD: octreeMaxLOD
     }
 
-    // Pass ownership of the buffer to the worker
     workerRef.current.postMessage({
       type: 'UPDATE',
       payload: cameraData,
       buffer: transferBufferRef.current 
     }, [transferBufferRef.current]) 
-    
-    // Main thread no longer owns this memory
     transferBufferRef.current = null 
   })
 
   return (
     <group position={position} rotation={rotation}>
-      <points geometry={geometryRef.current}>
-        <pointsMaterial size={0.02} sizeAttenuation color="black" />
+      <points geometry={geometryRef.current} dispose={null} frustumCulled={false}>
+        <pointsMaterial size={0.02} sizeAttenuation vertexColors={true} />
       </points>
     </group>
   )

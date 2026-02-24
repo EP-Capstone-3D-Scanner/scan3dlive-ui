@@ -1,44 +1,13 @@
 import React from 'react';
 import * as THREE from 'three'
-import { useState , useEffect , useMemo , useRef} from 'react';
+import { useState , useEffect , useMemo , useRef, Suspense } from 'react';
 import { Canvas, useLoader, useThree } from '@react-three/fiber'
 import { Environment , FirstPersonControls, OrbitControls, Html } from '@react-three/drei'
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js'
 import OctreeTest from './OctreeTest'
 import * as Loggers from './Loggers'
 //position={[-0.5,1.10,8]} rotation={[-Math.PI/2, 0, Math.PI/2]
-function Model({
-  chunk, 
-  position, 
-  annotations, 
-  setAnnotations, 
-  selectedModel, 
-  setSelectedModel
-}) {
-  const geometry = useLoader(PLYLoader, 'point_clouds/test1.ply');
 
-  const handlePointsClick = (e) => {
-    e.stopPropagation();     // keep event from hitting other objects
-    setSelectedModel(chunk)
-    console.log(selectedModel)
-    if(e.shiftKey) {
-      const id = annotations.size ? Math.max(...annotations.keys()) + 1 : 1;
-      setAnnotations(prev=> new Map(prev).set(id, {"Model": chunk, "label":id, "position": e.point}))
-      console.log({"Model": chunk, "label":id, "position": e.point})
-    }
-  }
-  
-  return (
-    <points onClick={handlePointsClick} rotation={[-Math.PI/2, 0, Math.PI/2]}  position={position} geometry={geometry} scale={2}>
-      <pointsMaterial
-        sizeAttenuation={true}
-        size={0.00001}          // size of each point
-        vertexColors         // if your PLY has colors
-        color="white"        // fallback color
-      />
-    </points>
-  );
-}
 
 let invalidateRef = null
 let cameraRef = null
@@ -53,59 +22,43 @@ export function getCamera() {
 }
 
 
-// Need to combine these components into a single "Background Manager". Also clean up code
-function Skybox({ visible, preset }) {
+const BackgroundManager = ({ skyboxVisible, skyboxPreset, backgroundVisible, backgroundColor }) => {
+  const { scene, invalidate } = useThree();
 
   useEffect(() => {
-    if (!visible) return;
-    // When mounted, optionally invalidate
-    invalidateCanvas();
-    // Cleanup runs when unmounted
-    return () => {
-      invalidateCanvas(); // force redraw when removed
-    };
-  }, [visible]);
-
-  if (!visible) return null;
-
-  return (
-    <Environment
-      key={preset} // ensures re-mount on preset change
-      preset={preset}
-      background
-      onLoad={() => invalidateCanvas()}
-    />
-  );
-}
-
-const SceneUpdater = ({ displaySettings }) => {
-  const { scene } = useThree();
-
-  useEffect(() => {
-    if(!displaySettings['skyboxVisible']) {
-      scene.background = null;
+    if (!skyboxVisible) {
+      if (backgroundVisible) {
+        scene.background = new THREE.Color(backgroundColor);
+      } else {
+        scene.background = null;
+      }
     }
-    if(displaySettings['backgroundVisible'] && !displaySettings['skyboxVisible']) {
-      scene.background = new THREE.Color(displaySettings['backgroundColor']);
-    }
-    invalidateCanvas()
-  }, [displaySettings['backgroundColor'], displaySettings['backgroundVisible'], displaySettings['skyboxVisible']]); 
+  }, [skyboxVisible, backgroundVisible, backgroundColor]);
 
-  return null; 
+  if (skyboxVisible) {
+    return (
+      <Suspense fallback={null}>
+        <Environment
+          key={skyboxPreset}
+          preset={skyboxPreset}
+          background
+          onLoad={() => invalidate()}
+        />
+      </Suspense>
+    )
+  }
+
+  return null;
 };
 
+const binaryFile = "point_clouds/octree_bin10.bin";
+//const binaryPLYFile =  "/point_clouds/ootori02.ply"
+const binaryPLYFile =  "/point_clouds/Dining_Room_Cleaned.ply"
+// const binaryPLYFile = "/point_clouds/oak_5M.ply"
 
-function Canvas3D({
-  annotations,
-  setAnnotations,
-  selectedModel,
-  setSelectedModel,
-  displaySettings,
-  setDisplaySettings,
-}) {
-  const binaryFile = "point_clouds/octree_bin10.bin";
-  const binaryPLYFile = "/point_clouds/oak_5M.ply";
 
+
+function Canvas3D({annotations, setAnnotations, displaySettings, setDisplaySettings }) {
   return (
     <div id="Canvas3D" className="w-100">
       <Canvas
@@ -116,36 +69,25 @@ function Canvas3D({
         }}
         camera={{ fov: 75, near: 0.0001, far: 1000, position: [0, 1.5, 12] }}
       >
-        <SceneUpdater displaySettings={displaySettings} />
-        <Skybox
-          visible={displaySettings["skyboxVisible"]}
-          preset={displaySettings["skyboxPreset"]}
+        <BackgroundManager 
+          skyboxPreset={displaySettings['skyboxPreset']}
+          skyboxVisible={displaySettings['skyboxVisible']}
+          backgroundVisible={displaySettings['backgroundVisible']}
+          backgroundColor={displaySettings['backgroundColor']}
         />
+
         <gridHelper 
           visible={displaySettings["gridVisible"]} 
           args={[10]} 
         />
         <OrbitControls></OrbitControls>
-      {/** 
-      <FirstPersonControls
-        movementSpeed={5} 
-        noFly={false}
-        lookSpeed={0.05}   
-        lookVertical={true}
-      />*/}
         <ambientLight intensity={1} />
         <directionalLight position={[5, 5, 5]} />
-        {/*<OctreeTest 
-          position={[0, 0, 0]} 
-          rotation={[0, 0, 0]} 
-          url={binaryFile} 
-          displaySettings={displaySettings}
-        />*/}
         <OctreeTest 
           position={[0, 0, 0]} 
           rotation={[0, 0, 0]} 
           url={binaryPLYFile} 
-          displaySettings={displaySettings}
+          octreeMaxLOD={displaySettings['octreeMaxLOD']}
         />
       </Canvas>
     </div>
@@ -153,6 +95,22 @@ function Canvas3D({
 }
 
 export default Canvas3D;
+
+
+{/** 
+<FirstPersonControls
+movementSpeed={5} 
+noFly={false}
+lookSpeed={0.05}   
+lookVertical={true}
+/>*/}
+
+{/*<OctreeTest 
+  position={[0, 0, 0]} 
+  rotation={[0, 0, 0]} 
+  url={binaryFile} 
+  displaySettings={displaySettings}
+/>*/}
 
 /*
 {Array.from(annotations.entries()).map(([id, annotation]) => (
