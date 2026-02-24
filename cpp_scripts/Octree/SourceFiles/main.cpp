@@ -9,28 +9,7 @@
 #include <vector>
 #include <string>
 #include "robin_hood.h"
-
-
-
-/**
-TODO: 1. Overload operators in Point struct, update code (DONE)
-TODO: 2. Implement projection of Point onto screen based on camera data (DONE)
-TODO: 3. Implement BoundingBox Class for Octree Nodes (DONE)
-TODO: 4. Implement frustum culling of Octree Nodes based on BoundingBox coordinates (MOSTLY DONE)
-TODO: 5. Implement projections of BoundingBox onto screen + BoundingBox screen size calculation (DONE)
-    create node to websocket function based on screen size, not octree level (NOT DONE)
-TODO: 6. Implement Octree node IDs (DONE)
-TODO: 7. Clean up code and comment (DONE)
-TODO: 8. Create Hashmap that tracks which nodes are to be shown in UI (UNNECCESSARY)
-TODO: 9. Update OctreeNode websocket functions to send chunked per-node data (update Header to include
-    nodes that need to be removed and nodes that need to be added along with point data) (UNNECESSARY)
-TODO: 10. Update UI to have cache of nodes, pop unneeded nodes, and draw new nodes in point object (UNNECESSARY)
-TODO: 11. Optimize code, comment everything
-TODO: 12. Finish websockets + networking code. Possibly use WebAssembly? (DONE)
-TODO: 13. Work on finishing UI interface buttons (DONE)
-TODO: 14. Work on creating editing functions on point cloud in UI
-TODO: 15. Integrate segmentation stuff into UI + prioritize node rendering based on position
-*/
+#include "tinyply.h"
 
 void loadPointsFromCSV(std::vector<std::unique_ptr<PointXYZ>>& points, const std::string& filename) {
     std::ifstream file(filename);
@@ -61,7 +40,7 @@ void loadPointsFromCSV(std::vector<std::unique_ptr<PointXYZ>>& points, const std
     file.close();
     std::cout << "Loaded " << points.size() << " points\n";
 }
-void loadPointsXYZFromBinaryPLY(std::vector<std::unique_ptr<PointXYZ>>& points, const std::string& filename) {
+void loadPointsXYZFromBinaryPLY(std::vector<std::unique_ptr<PointXYZRGBA>>& points, const std::string& filename) {
     std::ifstream file(filename, std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "Failed to open " << filename << "\n";
@@ -80,23 +59,100 @@ void loadPointsXYZFromBinaryPLY(std::vector<std::unique_ptr<PointXYZ>>& points, 
     // Read vertex data
     for (size_t i = 0; i < vertexCount; ++i) {
         float x, y, z;
-        int r, g, b;
+        uint8_t r, g, b, a = 0;
         file.read(reinterpret_cast<char*>(&x), sizeof(float));
         file.read(reinterpret_cast<char*>(&y), sizeof(float));
         file.read(reinterpret_cast<char*>(&z), sizeof(float));
-        file.read(reinterpret_cast<char*>(&r), sizeof(int));
-        file.read(reinterpret_cast<char*>(&g), sizeof(int));
-        file.read(reinterpret_cast<char*>(&b), sizeof(int));
-        points.push_back(std::make_unique<PointXYZ>(x, y, z));
+        file.read(reinterpret_cast<char*>(&r), sizeof(uint8_t));
+        file.read(reinterpret_cast<char*>(&g), sizeof(uint8_t));
+        file.read(reinterpret_cast<char*>(&b), sizeof(uint8_t));
+        points.emplace_back(std::make_unique<PointXYZRGBA>(x, y, z, r, g, b, a));
     }
     file.close();
     std::cout << "Loaded " << points.size() << " points from binary PLY"<< std::endl;
 }
 
 
+#include <iostream>
+#include <vector>
+#include <string>
+#include <fstream>
+#include <cstring>
+#include "tinyply.h"
+
+// Helper to extract and convert values from the raw tinyply buffer
+int load_ply(std::vector<PointXYZRGBA>& points, const std::string& path) {
+    std::ifstream file_stream(path, std::ios::binary);
+    if (!file_stream) throw std::runtime_error("Could not open file: " + path);
+
+    tinyply::PlyFile ply_file;
+    ply_file.parse_header(file_stream);
+
+    bool has_x = false, has_y = false, has_z = false;
+    bool has_r = false, has_g = false, has_b = false, has_a = false;
+    for (auto& e : ply_file.get_elements()) {
+        if (e.name == "vertex") {
+            for (auto& p : e.properties) {
+                if (p.name == "x") has_x = true;
+                if (p.name == "y") has_y = true;
+                if (p.name == "z") has_z = true;
+                if (p.name == "red")   has_r = true;
+                if (p.name == "green") has_g = true;
+                if (p.name == "blue")  has_b = true;
+                if (p.name == "alpha") has_a = true;
+            }
+            break;
+        }
+    }
+
+    std::shared_ptr<tinyply::PlyData> xyz, rgba;
+    if (has_x && has_y && has_z) {
+        xyz = ply_file.request_properties_from_element("vertex", { "x", "y", "z" });
+    }
+
+    std::vector<std::string> color_props;
+    if (has_r && has_g && has_b) {
+        color_props = { "red", "green", "blue" };
+        if (has_a) color_props.push_back("alpha");
+        rgba = ply_file.request_properties_from_element("vertex", color_props);
+    }
+
+    ply_file.read(file_stream);
+
+    if (xyz) {
+        points.reserve(xyz->count);
+
+        const size_t pos_stride = tinyply::PropertyTable[xyz->t].stride;
+        const uint8_t* pos_buf = xyz->buffer.get();
+
+        const size_t col_stride = rgba ? tinyply::PropertyTable[rgba->t].stride : 0;
+        const uint8_t* col_buf = rgba ? rgba->buffer.get() : nullptr;
+        const size_t col_channels = color_props.size();
+
+        for (size_t i = 0; i < xyz->count; ++i) {
+            float x, y, z;
+            uint8_t r = 0, g = 0, b = 0, a = 255;
+            x = tinyply::convert_value<float>(pos_buf + (i * 3 + 0) * pos_stride, xyz->t);
+            y = tinyply::convert_value<float>(pos_buf + (i * 3 + 1) * pos_stride, xyz->t);
+            z = tinyply::convert_value<float>(pos_buf + (i * 3 + 2) * pos_stride, xyz->t);
+
+            // Extract Colors (with defaults)
+            if (rgba) {
+                r = tinyply::convert_value<uint8_t>(col_buf + (i * col_channels + 0) * col_stride, rgba->t);
+                g = tinyply::convert_value<uint8_t>(col_buf + (i * col_channels + 1) * col_stride, rgba->t);
+                b = tinyply::convert_value<uint8_t>(col_buf + (i * col_channels + 2) * col_stride, rgba->t);
+                a = has_a ? tinyply::convert_value<uint8_t>(col_buf + (i * col_channels + 3) * col_stride, rgba->t) : 255;
+            }
+            points.emplace_back(x, y, z, r, g, b, a);
+        }
+
+        return xyz->count;
+    }
+    return 0;
+}
+
 int main() {
     BoundingBox bb = BoundingBox(PointXYZ(-6, -11, 2), PointXYZ(4, 12, 3));
-
     Matrix4x4 worldToCamera = {{
         {{1, 0, 0, 0}}, 
         {{0, 1, 0, 0}}, 
@@ -111,47 +167,34 @@ int main() {
     }};
     Camera c = {0, 0, 0, worldToCamera, projection, 1280, 161.0500030517578};
     
-    std::vector<std::unique_ptr<PointXYZ>> points;
-    points.reserve(5000001);
-    loadPointsXYZFromBinaryPLY(points, "../assets/oak_5M.ply");
+    std::vector<PointXYZRGBA> points;
+    load_ply(points, "../assets/ootori02.ply");
 
     //Get bounding box of all points
-    PointXYZ minPoint = *(points[0]);
-    PointXYZ maxPoint = *(points[0]);
+    PointXYZ minPoint = points[0];
+    PointXYZ maxPoint = points[0];
 
     for (const auto& p : points) {
-        if (p->x < minPoint.x) minPoint.x = p->x;
-        if (p->y < minPoint.y) minPoint.y = p->y;
-        if (p->z < minPoint.z) minPoint.z = p->z;
-        if (p->x > maxPoint.x) maxPoint.x = p->x;
-        if (p->y > maxPoint.y) maxPoint.y = p->y;
-        if (p->z > maxPoint.z) maxPoint.z = p->z;
+        if (p.x < minPoint.x) minPoint.x = p.x;
+        if (p.y < minPoint.y) minPoint.y = p.y;
+        if (p.z < minPoint.z) minPoint.z = p.z;
+        if (p.x > maxPoint.x) maxPoint.x = p.x;
+        if (p.y > maxPoint.y) maxPoint.y = p.y;
+        if (p.z > maxPoint.z) maxPoint.z = p.z;
     }
 
     std::cout << "Min Point: " << minPoint << std::endl;
     std::cout << "Max Point: " << maxPoint << std::endl;
     
-    uint16_t originalRootId = ModifiableNestedOctree::ROOT_ID;
-    ModifiableNestedOctree::expandRoot(BoundingBox(minPoint, maxPoint));
+    uint16_t originalRootId = ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID;
+    ModifiableNestedOctree<PointXYZRGBA>::expandRoot(BoundingBox(minPoint, maxPoint));
 
     for (const auto& p : points) {
-        ModifiableNestedOctree::MNO[ModifiableNestedOctree::ROOT_ID].insertPoint(*p);
+        ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].insertPoint(p);
     }
 
-    ModifiableNestedOctree::MNO[ModifiableNestedOctree::ROOT_ID].repairLOD(originalRootId);
-    ModifiableNestedOctree::MNO[ModifiableNestedOctree::ROOT_ID].printNode();
-    
-    std::cout << sizeof(ModifiableNestedOctree) * ModifiableNestedOctree::MNO.size() << std::endl;
-    std::cout << sizeof(PointXY)*ModifiableNestedOctree::POINT_COUNT << std::endl;
-    std::cout << sizeof(robin_hood::unordered_flat_map<uint16_t, PointXYZ>) << std::endl;
+    ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].repairLOD(originalRootId);
+    ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].printNode();
 
     return 0;
 }
-
-/*
-    /*
-    for (int i = 0; i< 11;i++) {
-        std::string text = "octree_bin" + std::to_string(i) + ".bin";
-        root.serializeForWebSocket(i, text);
-    }
-    */

@@ -1,6 +1,7 @@
 #include "MathTypes.h"
 #include "ModifiableNestedOctree.h"
 #include "Points.h"
+#include "tinyply.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -11,7 +12,82 @@
 
 // cd emcc -O2 SourceFiles/EmscriptenMain.cpp SourceFiles/ModifiableNestedOctree.cpp SourceFiles/BoundingBox.cpp SourceFiles/Camera.cpp SourceFiles/Points.cpp -I HeaderFiles -o OctreeModulePLYInsertionTest.js -sEXPORT_ES6 -sEXPORTED_FUNCTIONS=_malloc,_free -sEXPORTED_RUNTIME_METHODS=HEAPF32,HEAPU32 -sINITIAL_MEMORY=512MB
 // emcc -O3 SourceFiles/EmscriptenMain.cpp SourceFiles/ModifiableNestedOctree.cpp SourceFiles/BoundingBox.cpp SourceFiles/Camera.cpp SourceFiles/Points.cpp -I HeaderFiles -o OctreeModulePLYInsertionTest.js -sEXPORT_ES6 -sEXPORTED_FUNCTIONS=_malloc,_free -sEXPORTED_RUNTIME_METHODS=HEAPF32,HEAPU32,HEAPU8 -sINITIAL_MEMORY=2048MB
-// emcc -sENVIRONMENT=web -sMALLOC=emmalloc -O3 -flto SourceFiles/EmscriptenMain.cpp SourceFiles/ModifiableNestedOctree.cpp SourceFiles/BoundingBox.cpp SourceFiles/Camera.cpp SourceFiles/Points.cpp -I HeaderFiles -o OctreeModuleLinearTest.js -sEXPORT_ES6 -sEXPORTED_FUNCTIONS=_malloc,_free -sEXPORTED_RUNTIME_METHODS=HEAPF32,HEAPU32,HEAPU8 -sINITIAL_MEMORY=2048MB -sALLOW_MEMORY_GROWTH=0
+// emcc -sENVIRONMENT=web -sMALLOC=emmalloc -O3 -flto SourceFiles/EmscriptenMain.cpp SourceFiles/ModifiableNestedOctree.cpp SourceFiles/BoundingBox.cpp SourceFiles/Camera.cpp SourceFiles/Points.cpp -I HeaderFiles -o OctreeModuleColorTest.js -sEXPORT_ES6 -sEXPORTED_FUNCTIONS=_malloc,_free -sEXPORTED_RUNTIME_METHODS=HEAPF32,HEAPU32,HEAPU8 -sINITIAL_MEMORY=2048MB -sALLOW_MEMORY_GROWTH=0
+
+uint32_t load_ply(std::vector<PointXYZRGBA>& points, const uint8_t* dataPtr, size_t dataSize) {
+
+    std::string dataStr(reinterpret_cast<const char*>(dataPtr), dataSize);
+    std::istringstream mem_stream(dataStr, std::ios::binary);
+
+    if (!mem_stream) throw std::runtime_error("Could not create memory stream");
+
+    tinyply::PlyFile ply_file;
+    if (!ply_file.parse_header(mem_stream)) {
+         throw std::runtime_error("Could not parse PLY header");
+    }
+
+    // ... [Your property check logic remains the same] ...
+    bool has_x = false, has_y = false, has_z = false;
+    bool has_r = false, has_g = false, has_b = false, has_a = false;
+    for (auto& e : ply_file.get_elements()) {
+        if (e.name == "vertex") {
+            for (auto& p : e.properties) {
+                if (p.name == "x") has_x = true;
+                if (p.name == "y") has_y = true;
+                if (p.name == "z") has_z = true;
+                if (p.name == "red")   has_r = true;
+                if (p.name == "green") has_g = true;
+                if (p.name == "blue")  has_b = true;
+                if (p.name == "alpha") has_a = true;
+            }
+            break;
+        }
+    }
+
+    std::shared_ptr<tinyply::PlyData> xyz, rgba;
+    if (has_x && has_y && has_z) {
+        xyz = ply_file.request_properties_from_element("vertex", { "x", "y", "z" });
+    }
+
+    std::vector<std::string> color_props;
+    if (has_r && has_g && has_b) {
+        color_props = { "red", "green", "blue" };
+        if (has_a) color_props.push_back("alpha");
+        rgba = ply_file.request_properties_from_element("vertex", color_props);
+    }
+
+    // FIX: Read from the memory stream, not the file stream
+    ply_file.read(mem_stream);
+
+    if (xyz) {
+        points.reserve(xyz->count);
+
+        const size_t pos_stride = tinyply::PropertyTable[xyz->t].stride;
+        const uint8_t* pos_buf = xyz->buffer.get();
+        const size_t col_stride = rgba ? tinyply::PropertyTable[rgba->t].stride : 0;
+        const uint8_t* col_buf = rgba ? rgba->buffer.get() : nullptr;
+        const size_t col_channels = color_props.size();
+
+        for (size_t i = 0; i < xyz->count; ++i) {
+            float x = tinyply::convert_value<float>(pos_buf + (i * 3 + 0) * pos_stride, xyz->t);
+            float y = tinyply::convert_value<float>(pos_buf + (i * 3 + 1) * pos_stride, xyz->t);
+            float z = tinyply::convert_value<float>(pos_buf + (i * 3 + 2) * pos_stride, xyz->t);
+
+            uint8_t r = 0, g = 0, b = 0, a = 255;
+            if (rgba) {
+                r = tinyply::convert_value<uint8_t>(col_buf + (i * col_channels + 0) * col_stride, rgba->t);
+                g = tinyply::convert_value<uint8_t>(col_buf + (i * col_channels + 1) * col_stride, rgba->t);
+                b = tinyply::convert_value<uint8_t>(col_buf + (i * col_channels + 2) * col_stride, rgba->t);
+                if (has_a) {
+                    a = tinyply::convert_value<uint8_t>(col_buf + (i * col_channels + 3) * col_stride, rgba->t);
+                }
+            }
+            points.emplace_back(x, y, z, r, g, b, a);
+        }
+        return static_cast<uint32_t>(xyz->count);
+    }
+    return 0;
+}
 
 Matrix4x4 worldToCamera = {{
     {{1, 0, 0, 0}}, 
@@ -68,36 +144,11 @@ extern "C" {
     }
 
     EMSCRIPTEN_KEEPALIVE
-    int loadPointsXYZFromBinaryPLY(const uint8_t* dataPtr, const int dataSize) {
-        std::vector<PointXYZ> points;
-        std::istringstream file(std::string(reinterpret_cast<const char*>(dataPtr), dataSize));
-        std::string line;
-        size_t vertexCount = 0;
-        int headerSizeBytes = 0;
-
-        // Read header
-        while (std::getline(file, line)) {
-            if (line.substr(0, 14) == "element vertex") {
-                vertexCount = std::stoul(line.substr(15));
-            }
-            if (line == "end_header") {
-                headerSizeBytes = (int) file.tellg();
-                break;
-            }
-        }
-
-        // Read vertex data
-        for (size_t i = 0; i < vertexCount; ++i) {
-            float x, y, z;
-            int r, g, b;
-            file.read(reinterpret_cast<char*>(&x), sizeof(float));
-            file.read(reinterpret_cast<char*>(&y), sizeof(float));
-            file.read(reinterpret_cast<char*>(&z), sizeof(float));
-            file.read(reinterpret_cast<char*>(&r), sizeof(int));
-            file.read(reinterpret_cast<char*>(&g), sizeof(int));
-            file.read(reinterpret_cast<char*>(&b), sizeof(int));
-            points.emplace_back(x, y, z);
-        }
+    uint32_t loadPointsXYZFromBinaryPLY(const uint8_t* dataPtr, const size_t dataSize) {
+        
+        uint32_t vertexCount = 0;
+        std::vector<PointXYZRGBA> points;
+        vertexCount = load_ply(points, dataPtr, dataSize);
 
         PointXYZ minPoint = points[0];
         PointXYZ maxPoint = points[0];
@@ -110,24 +161,24 @@ extern "C" {
             if (p.y > maxPoint.y) maxPoint.y = p.y;
             if (p.z > maxPoint.z) maxPoint.z = p.z;
         }
-        uint16_t originalRootId = ModifiableNestedOctree::ROOT_ID;
-        ModifiableNestedOctree::expandRoot(BoundingBox(minPoint, maxPoint));
-        for (const auto& p : points) {
-            ModifiableNestedOctree::MNO[ModifiableNestedOctree::ROOT_ID].insertPoint(p);
-        }
-        ModifiableNestedOctree::MNO[ModifiableNestedOctree::ROOT_ID].repairLOD(originalRootId);
-        return headerSizeBytes;
+        // Combine these four lines into a single function when done this project.
+        uint16_t originalRootId = ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID;
+        ModifiableNestedOctree<PointXYZRGBA>::expandRoot(BoundingBox(minPoint, maxPoint));
+        for (const auto& p : points) {ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].insertPoint(p);}
+        ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].repairLOD(originalRootId);
+        return vertexCount;
     }
 
     EMSCRIPTEN_KEEPALIVE
-    void insertPoints(const float * dataPtr, const int pointCount) {
-        std::vector<PointXYZ> points;
+    void insertPoints(float * dataPtr, const int pointCount) {
+        std::vector<PointXYZRGBA> points;
         points.reserve(pointCount);
         
         PointXYZ minPoint(INFINITY, INFINITY, INFINITY);
         PointXYZ maxPoint(-INFINITY, -INFINITY, -INFINITY);
         for(int i = 0; i < pointCount; i++) {
-            PointXYZ p(*(dataPtr+3*i+0), *(dataPtr+3*i+1), *(dataPtr+3*i+2));
+            uint8_t* colorPtr = reinterpret_cast<uint8_t*>(&dataPtr[4*i+3]);
+            PointXYZRGBA p(*(dataPtr+4*i+0), *(dataPtr+4*i+1), *(dataPtr+4*i+2), *(colorPtr+0), *(colorPtr+1), *(colorPtr+2), 0);
             points.push_back(p);
             if (p.x < minPoint.x) minPoint.x = p.x;
             if (p.y < minPoint.y) minPoint.y = p.y;
@@ -137,18 +188,17 @@ extern "C" {
             if (p.z > maxPoint.z) maxPoint.z = p.z;
         }
         
-        uint16_t originalRootId = ModifiableNestedOctree::ROOT_ID;
-        BoundingBox pointInsertionBox(minPoint, maxPoint);
-        ModifiableNestedOctree::expandRoot(pointInsertionBox);
-        for(const PointXYZ& p : points) {
-            ModifiableNestedOctree::MNO[ModifiableNestedOctree::ROOT_ID].insertPoint(p);
+        uint16_t originalRootId = ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID;
+        ModifiableNestedOctree<PointXYZRGBA>::expandRoot(BoundingBox(minPoint, maxPoint));
+        for(const PointXYZRGBA& p : points) {
+            ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].insertPoint(p);
         }
-        ModifiableNestedOctree::MNO[ModifiableNestedOctree::ROOT_ID].repairLOD(originalRootId);
+        ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].repairLOD(originalRootId);
     }
 
     EMSCRIPTEN_KEEPALIVE
     void * getVisibleOctreeNodes(int maxDepth, float minPixelSize) {
-        return ModifiableNestedOctree::MNO[ModifiableNestedOctree::ROOT_ID].serializeForR3F(c, maxDepth, minPixelSize);
+        return ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].serializeForR3F(c, maxDepth, minPixelSize);
     }
 }
 
