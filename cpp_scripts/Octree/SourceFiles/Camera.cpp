@@ -78,8 +78,6 @@ void Camera::setProjectionMatrix(
 void Camera::setProjectionViewMatrix() {
 
     projectionViewMatrix = projection * viewMatrixInverse;
-
-    // Note: Make sure c.setProjectionViewMatrix() has been called before this runs!
     const auto& m = projectionViewMatrix;
 
     // Extract the 6 frustum planes from the View-Projection matrix.

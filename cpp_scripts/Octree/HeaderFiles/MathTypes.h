@@ -8,6 +8,7 @@
  * @typedef Matrix4x4
  * @brief Matrix object typedef with 4x4 size  
  * */
+
 using Matrix4x4 = std::array<std::array<float, 4>, 4>;
 
 /**
@@ -15,6 +16,7 @@ using Matrix4x4 = std::array<std::array<float, 4>, 4>;
  *
  * @param M  The 4x4 matrix to be printed
  */
+
 inline void printMatrix4x4(const Matrix4x4& M) {
     
     std::cout << std::fixed << std::setprecision(4);

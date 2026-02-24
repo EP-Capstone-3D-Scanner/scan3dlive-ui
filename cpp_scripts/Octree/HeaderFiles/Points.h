@@ -5,19 +5,14 @@
 #include <array>
 #include <iosfwd> 
 
-
 /** 
  * @struct PointXY
  * @brief Point structure for representing (2D) points  
  * */
 struct PointXY {
 
-    /** Point x-coordinate */
     float x = 0;
-
-    /** Point y-coordinate */
     float y = 0;
-
 
     /**
      * @brief Constructs a PointXY object from point coordinates
@@ -26,32 +21,8 @@ struct PointXY {
         float x_ = 0, 
         float y_ = 0 
     );
-    
-    /**
-    * Indexed access to coordinates.
-    *
-    * @param i Index in [0, 1].
-    */
-    float& operator[](int i);
-    const float& operator[](int i) const;
 
-    PointXY&  operator/=(float d);
 };
-
-PointXY operator+(
-    const PointXY&  p1, 
-    const PointXY&  p2
-);
-
-PointXY operator/(
-    PointXY p, 
-    float denominator
-);
-
-std::ostream& operator<<(
-    std::ostream& os, 
-    const PointXY&  p
-);
 
 /** 
  * @struct PointXYZ
@@ -59,13 +30,8 @@ std::ostream& operator<<(
  * */
 struct PointXYZ {
 
-    /** Point x-coordinate */
     float x = 0;
-
-    /** Point y-coordinate */
     float y = 0;
-
-    /** Point z-coordinate */
     float z = 0;
 
     /**
@@ -76,120 +42,93 @@ struct PointXYZ {
         float y_ = 0, 
         float z_ = 0
     );
-    
-    /**
-    * Returns coordinates of PointXYZ object.
-    *
-    * @param c Camera view of 3D scene.
-    * @return NDC Coordinates of PointXYZ
-    */
-    PointXYZ& toNDC(const Camera& c);
-    PointXYZ getNDC(const Camera& c) const; 
-
-    /**
-    * Gets screen coodindates of 3D Point.
-    *
-    * @param c Camera view of 3D scene.
-    * @return Screen coordinates of PointXYZ
-    */
-    PointXY getScreenCoordinates(const Camera& c) const; //Update to return reference
-
-    /**
-    * Indexed access to coordinates.
-    *
-    * @param i Index in [0, 2].
-    */
-    float& operator[](int i);
-    const float& operator[](int i) const;
-
-    PointXYZ&  operator/=(float d);
 };
 
-PointXYZ operator*(
-    const Matrix4x4& m, 
-    const PointXYZ&  p
-);
-
-PointXYZ operator+(
-    const PointXYZ&  p1, 
-    const PointXYZ&  p2
-);
-
-PointXYZ operator-(
-    const PointXYZ&  p1, 
-    const PointXYZ&  p2
-);
-
-PointXYZ operator/(
-    PointXYZ p, 
-    float denominator
-);
-
-std::ostream& operator<<(
-    std::ostream& os, 
-    const PointXYZ& p
-);
-
 /** 
- * @struct PointXYZW
+ * @struct PointXYZRGB
  * @brief Point structure for representing (3D) points  
  * */
-struct PointXYZW : PointXYZ {
+struct PointXYZRGBA : PointXYZ {
 
-    /** Point w-coordinate */
-    float w = 1;
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
+    uint8_t a = 255;
 
     /**
-     * @brief Constructs a default PointXYZW object
+     * @brief Constructs a default PointXYZRGB object
      */
-    PointXYZW(
+    PointXYZRGBA(
         float x_ = 0, 
         float y_ = 0, 
         float z_ = 0, 
-        float w_ = 1
+        uint8_t r_ = 0,
+        uint8_t g_ = 0,
+        uint8_t b_ = 0,
+        uint8_t a_ = 255
     );
 
     /**
-     * @brief Constructs a PointXYZW object from corresponding PointXYZ
+     * @brief Constructs a PointXYZRGB object from corresponding PointXYZ
      */
-    PointXYZW(
+    PointXYZRGBA(
         const PointXYZ& p, 
-        float w_ = 1
+        uint8_t r_ = 0,
+        uint8_t g_ = 0,
+        uint8_t b_ = 0,
+        uint8_t a_ = 255
     );
-
-    /**
-    * Converts PointXYZW (NDC) object to screen coordinates.
-    *
-    * @param c Camera view of 3D scene.
-    * @return Screen coordinates of PointXYZW (NDC)
-    */
-    /*PointXY getScreenCoordinates(const Camera& c);*/
-
-    /**
-    * Converts PointXYZW object to Normalized Device Coordinates (NDC) equivalent
-    *
-    * @param c Camera view of 3D scene.
-    * @return NDC coordinates of point
-    */
-    PointXYZW& homogenize();
-    PointXYZW homogenized() const;
-    
-    float& operator[](int i);
-    const float& operator[](int i) const;
-    
 };
 
-PointXYZW operator*(
-    const Matrix4x4& m, 
-    const PointXYZW& p
-);
+std::ostream& operator<<(std::ostream& os, const PointXY&  p);
+std::ostream& operator<<(std::ostream& os, const PointXYZ& p);
+std::ostream& operator<<(std::ostream& os, const PointXYZRGBA& p);
 
-std::ostream& operator<<(
-    std::ostream& os, 
-    const PointXYZW& p
-);
+/**
+* Gets screen coodindates of 3D Point.
+*
+* @param c Camera view of 3D scene.
+* @return Screen coordinates of PointXYZ
+*/
+template<typename PointT>
+PointXY getScreenCoordinates(PointT& p, const Camera& c) {
+    PointT pNDC = c.projectionViewMatrix*p;
+    float screenX = (pNDC.x + 1.0) * 0.5 * c.screenWidth;
+    float screenY = (1.0 - pNDC.y) * 0.5 * c.screenHeight;
+    return PointXY(screenX, screenY);
+}
 
+template<typename PointT>
+PointT operator*(const Matrix4x4& m, const PointT& p) {
+    PointT result = p;
+    float w = 1.0f / (m[3][0]*p.x + m[3][1]*p.y + m[3][2]*p.z + m[3][3]);
+    result.x = (m[0][0]*p.x + m[0][1]*p.y + m[0][2]*p.z + m[0][3]) * w;
+    result.y = (m[1][0]*p.x + m[1][1]*p.y + m[1][2]*p.z + m[1][3]) * w;
+    result.z = (m[2][0]*p.x + m[2][1]*p.y + m[2][2]*p.z + m[2][3]) * w;
+    return result;
+}
 
+template<typename PointT>
+PointT operator+(const PointT& p1, const PointT& p2) {
+    PointT sum;
+    sum.x = p1.x + p2.x;
+    sum.y = p1.y + p2.y;
+    sum.z = p1.z + p2.z;
+    return sum;
+}
+
+template<typename PointT>
+PointT& operator/=(PointT& p, float d) {
+    p.x /= d;
+    p.y /= d;
+    p.z /= d;
+    return p;
+}
+
+template<typename PointT>
+PointT operator/(PointT p, float denominator) {
+    return p /= denominator;
+}
 
 
 

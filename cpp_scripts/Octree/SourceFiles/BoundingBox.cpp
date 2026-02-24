@@ -10,7 +10,7 @@
  * @brief BoundingBox Struct Definitions
  * */
 
- BoundingBox::BoundingBox() : minCorner(PointXYZ{0,0,0}), maxCorner(PointXYZ{0,0,0}) {
+ BoundingBox::BoundingBox() : minCorner(PointXYZ(0,0,0)), maxCorner(PointXYZ(0,0,0)) {
 
     center = (minCorner+maxCorner)/2;
     height = 0;
@@ -68,7 +68,6 @@ bool BoundingBox::inCameraFrustum(const Camera& c) const {
 }
 
 float BoundingBox::getScreenProjectedSize(const Camera& c) const {
-
     std::array<PointXY, 8> cornersNDC = getCornersScreenProjected(c);
     float minX = cornersNDC[0].x, minY = cornersNDC[0].y;
     float maxX = cornersNDC[0].x, maxY = cornersNDC[0].y;
@@ -81,11 +80,10 @@ float BoundingBox::getScreenProjectedSize(const Camera& c) const {
     }
 
     return (maxX-minX)*(maxY-minY);
-
 }
 
 PointXYZ BoundingBox::getCenter() const {
-    
+
     return center;
 
 }
@@ -116,43 +114,38 @@ PointXYZ BoundingBox::getCorner(int cornerIndex) const {
 std::array<PointXYZ, 8> BoundingBox::getCorners() const {
 
     PointXYZ p0 = minCorner;
-    PointXYZ p1 = PointXYZ{maxCorner[0], minCorner[1], minCorner[2]};
-    PointXYZ p2 = PointXYZ{minCorner[0], maxCorner[1], minCorner[2]};
-    PointXYZ p3 = PointXYZ{maxCorner[0], maxCorner[1], minCorner[2]};
-    PointXYZ p4 = PointXYZ{minCorner[0], minCorner[1], maxCorner[2]};
-    PointXYZ p5 = PointXYZ{maxCorner[0], minCorner[1], maxCorner[2]};
-    PointXYZ p6 = PointXYZ{minCorner[0], maxCorner[1], maxCorner[2]};
+    PointXYZ p1 = PointXYZ{maxCorner.x, minCorner.y, minCorner.z};
+    PointXYZ p2 = PointXYZ{minCorner.x, maxCorner.y, minCorner.z};
+    PointXYZ p3 = PointXYZ{maxCorner.x, maxCorner.y, minCorner.z};
+    PointXYZ p4 = PointXYZ{minCorner.x, minCorner.y, maxCorner.z};
+    PointXYZ p5 = PointXYZ{maxCorner.x, minCorner.y, maxCorner.z};
+    PointXYZ p6 = PointXYZ{minCorner.x, maxCorner.y, maxCorner.z};
     PointXYZ p7 = maxCorner;
 
     std::array<PointXYZ, 8> corners = {p0, p1, p2, p3, p4, p5, p6, p7};
-
     return corners;
 
 };
 
 std::array<PointXYZ, 8> BoundingBox::getCornersNDC(const Camera& c) const {
-    
     std::array<PointXYZ, 8> corners = getCorners();
 
     for (int i = 0; i<8; ++i) {
-        corners[i].toNDC(c);
+        corners[i] = c.projectionViewMatrix*corners[i];
     }
 
     return corners;
-
 }
 
 std::array<PointXY, 8> BoundingBox::getCornersScreenProjected(const Camera& c) const {
-    
     std::array<PointXY, 8> cornersScreenProjected;
     const std::array<PointXYZ, 8> corners = getCorners();
 
     for (int i = 0; i<8; ++i) {
-        cornersScreenProjected[i] = corners[i].getScreenCoordinates(c);
+        cornersScreenProjected[i] = getScreenCoordinates(corners[i], c);
     }
 
     return cornersScreenProjected;
-
 }
 
 void BoundingBox::expandToInclude(const PointXYZ& p) {
@@ -163,5 +156,11 @@ void BoundingBox::expandToInclude(const PointXYZ& p) {
     if (p.y > maxCorner.y) maxCorner.y = p.y;
     if (p.z > maxCorner.z) maxCorner.z = p.z;
 
-    center = (minCorner + maxCorner) / 2;
+    length = (maxCorner.x - minCorner.x);
+    width = (maxCorner.y - minCorner.y);
+    height = (maxCorner.z - minCorner.z);
+    center = (minCorner+maxCorner)/2;
+    inv_length = 1/(maxCorner.x - minCorner.x);
+    inv_width = 1/(maxCorner.y - minCorner.y);
+    inv_height = 1/(maxCorner.z - minCorner.z);
 }
