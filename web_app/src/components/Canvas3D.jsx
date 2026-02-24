@@ -1,12 +1,12 @@
 import React from 'react';
 import * as THREE from 'three'
-import { useState , useEffect , useMemo , useRef, Suspense } from 'react';
-import { Canvas, useLoader, useThree } from '@react-three/fiber'
+import { useState , useEffect, Suspense } from 'react';
+import { Canvas,  useThree } from '@react-three/fiber'
 import { Environment , FirstPersonControls, OrbitControls, Html } from '@react-three/drei'
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js'
 import OctreeTest from './OctreeTest'
 import * as Loggers from './Loggers'
-//position={[-0.5,1.10,8]} rotation={[-Math.PI/2, 0, Math.PI/2]
+//position={[-0.5,1.10,8]} rotation={[-Math.PI/2, 0, Math.PI/2]}
 
 
 let invalidateRef = null
@@ -21,7 +21,6 @@ export function getCamera() {
   return cameraRef
 }
 
-
 const BackgroundManager = ({ skyboxVisible, skyboxPreset, backgroundVisible, backgroundColor }) => {
   const { scene, invalidate } = useThree();
 
@@ -33,6 +32,7 @@ const BackgroundManager = ({ skyboxVisible, skyboxPreset, backgroundVisible, bac
         scene.background = null;
       }
     }
+    setTimeout(() => invalidate(), 1);
   }, [skyboxVisible, backgroundVisible, backgroundColor]);
 
   if (skyboxVisible) {
@@ -51,10 +51,7 @@ const BackgroundManager = ({ skyboxVisible, skyboxPreset, backgroundVisible, bac
   return null;
 };
 
-const binaryFile = "point_clouds/octree_bin10.bin";
-//const binaryPLYFile =  "/point_clouds/ootori02.ply"
-const binaryPLYFile =  "/point_clouds/Dining_Room_Cleaned.ply"
-// const binaryPLYFile = "/point_clouds/oak_5M.ply"
+const binaryPLYFile = "/point_clouds/oak_5M.ply"
 
 
 

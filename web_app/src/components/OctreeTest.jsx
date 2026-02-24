@@ -15,11 +15,13 @@ function OctreeTest({ position, rotation, url, octreeMaxLOD }) {
   const colorAttrRef = useRef(null)
   const transferBufferRef = useRef(null) 
   const isWorkerBusy = useRef(false)
+  
+  /*
   const aspectRatio = useRef(size.width / size.height)
-
   useEffect(() => {
     aspectRatio.current = size.width / size.height
   }, [size.width, size.height])
+  */
 
   useEffect(() => {
     invalidate();
@@ -27,6 +29,7 @@ function OctreeTest({ position, rotation, url, octreeMaxLOD }) {
     workerRef.current = worker
 
     worker.onmessage = (e) => {
+
       setTimeout(() => invalidate(), 10);
       const { type, payload, buffer } = e.data
 
@@ -43,7 +46,8 @@ function OctreeTest({ position, rotation, url, octreeMaxLOD }) {
         const colorBuffer = new THREE.InterleavedBuffer(new Uint8Array(displayArray.buffer), 16);
         positionAttrRef.current = new THREE.InterleavedBufferAttribute(positionBuffer, 3, 0);
         colorAttrRef.current = new THREE.InterleavedBufferAttribute(colorBuffer, 4, 12, true);
-
+        positionAttrRef.current.data.needsUpdate = true;
+        colorAttrRef.current.data.needsUpdate = true;
         geometryRef.current.setAttribute('position', positionAttrRef.current);
         geometryRef.current.setAttribute('color', colorAttrRef.current);
         transferBufferRef.current = new ArrayBuffer(byteSize);
@@ -60,8 +64,6 @@ function OctreeTest({ position, rotation, url, octreeMaxLOD }) {
       }
 
       else if (type === 'NO_UPDATE') {
-        //positionAttrRef.current.data.set(new Float32Array(buffer)); 
-        //colorAttrRef.current.data.set(new Uint8Array(buffer));
         transferBufferRef.current = buffer;
         isWorkerBusy.current = false;
       }
@@ -72,13 +74,18 @@ function OctreeTest({ position, rotation, url, octreeMaxLOD }) {
 
   useFrame((state) => {
     if (!isLoaded || isWorkerBusy.current || !transferBufferRef.current) return
-    isWorkerBusy.current = true
     
+    isWorkerBusy.current = true
+
     const cameraData = {
-      pos: { x: state.camera.position.x, y: state.camera.position.y, z: state.camera.position.z },
+      pos: { 
+        x: state.camera.position.x, 
+        y: state.camera.position.y, 
+        z: state.camera.position.z 
+      },
       vmi: [...state.camera.matrixWorldInverse.elements],
       pm: [...state.camera.projectionMatrix.elements],
-      aspectRatio: aspectRatio.current,
+      aspectRatio: state.camera.aspect,
       maxLOD: octreeMaxLOD
     }
 
@@ -87,7 +94,9 @@ function OctreeTest({ position, rotation, url, octreeMaxLOD }) {
       payload: cameraData,
       buffer: transferBufferRef.current 
     }, [transferBufferRef.current]) 
+
     transferBufferRef.current = null 
+
   })
 
   return (
