@@ -71,16 +71,6 @@ void loadPointsXYZFromBinaryPLY(std::vector<std::unique_ptr<PointXYZRGBA>>& poin
     file.close();
     std::cout << "Loaded " << points.size() << " points from binary PLY"<< std::endl;
 }
-
-
-#include <iostream>
-#include <vector>
-#include <string>
-#include <fstream>
-#include <cstring>
-#include "tinyply.h"
-
-// Helper to extract and convert values from the raw tinyply buffer
 int load_ply(std::vector<PointXYZRGBA>& points, const std::string& path) {
     std::ifstream file_stream(path, std::ios::binary);
     if (!file_stream) throw std::runtime_error("Could not open file: " + path);
@@ -155,20 +145,20 @@ int main() {
     BoundingBox bb = BoundingBox(PointXYZ(-6, -11, 2), PointXYZ(4, 12, 3));
     Matrix4x4 worldToCamera = {{
         {{1, 0, 0, 0}}, 
-        {{0, 1, 0, 0}}, 
-        {{0, 0, 1, 0}}, 
+        {{0, 0.9922778767136676, -0.12403473458920855, -2.220446049250313e-16}}, 
+        {{0, 0.12403473458920855, 0.9922778767136676, -12.093386622447824}}, 
         {{0, 0, 0, 1}}
     }};
     Matrix4x4 projection = {{
-        {{1, 0, 0, 0}}, 
-        {{0, 1, 0, 0}}, 
-        {{0, 0, 1, 0}}, 
-        {{0, 0, 0, 1}}
+        {{0.858501852196042, 0, 0, 0}}, 
+        {{0, 1.3032253728412058, 0, 0}}, 
+        {{0, 0, -1.0000002000000199, -0.00020000002000000202}}, 
+        {{0, 0, -1, 1}}
     }};
-    Camera c = {0, 0, 0, worldToCamera, projection, 1280, 161.0500030517578};
+    Camera c = {0, 1.5, 12, worldToCamera, projection, 1280, 161.0500030517578};
     
     std::vector<PointXYZRGBA> points;
-    load_ply(points, "../assets/ootori02.ply");
+    load_ply(points, "../assets/oak_5M.ply");
 
     //Get bounding box of all points
     PointXYZ minPoint = points[0];
@@ -188,13 +178,19 @@ int main() {
     
     uint16_t originalRootId = ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID;
     ModifiableNestedOctree<PointXYZRGBA>::expandRoot(BoundingBox(minPoint, maxPoint));
-
+    //ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].printNode();
     for (const auto& p : points) {
         ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].insertPoint(p);
     }
-
     ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].repairLOD(originalRootId);
-    ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].printNode();
+    //ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].printNode();
+
+    uint64_t checksum = 0;
+    for(int i = 0; i < 300; i++) {
+        ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].serializeForR3F(c, 100, 0);
+    }
+    std::cout << "Result: " << checksum << std::endl;
+    //ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].printNode();
 
     return 0;
 }

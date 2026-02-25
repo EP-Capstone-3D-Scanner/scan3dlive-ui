@@ -10,6 +10,7 @@
 #include <vector>
 #include <fstream>
 #include <string>
+#include <algorithm>
 
 
 /** 
@@ -89,7 +90,7 @@ public:
     * @param maxDepth The maximum depth to traverse into the MNO
     * @param minPixelSize The minimum pixel size for MNO node to display
     */
-    void* serializeForR3F(const Camera& c, int maxDepth, float minPixelSize) const;
+    uint8_t* serializeForR3F(const Camera& c, int maxDepth, float minPixelSize) const;
 
     /**
     * Compiles MNO node into output buffer (float)
@@ -399,10 +400,10 @@ void ModifiableNestedOctree<PointT>::repairLOD(uint32_t originalRootId) {
 
 // Need to create function that will automatially serialize points
 template <typename PointT>
-void* ModifiableNestedOctree<PointT>::serializeForR3F(const Camera& c, int maxDepth, float minPixelSize) const {
+uint8_t* ModifiableNestedOctree<PointT>::serializeForR3F(const Camera& c, int maxDepth, float minPixelSize) const {
     std::vector<uint8_t> positions;
 
-    size_t bytesPerPoint = sizeof(PointT); // TODO: make function that serializes points
+    size_t bytesPerPoint = 4*sizeof(float); // TODO: make function that serializes points
     positions.reserve(POINT_COUNT * bytesPerPoint);
 
     auto appendBytes = [&](const auto& value) {
