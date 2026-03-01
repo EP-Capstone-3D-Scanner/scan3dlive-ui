@@ -1,10 +1,14 @@
 import React from 'react';
+import { useRef } from 'react'
 import Navbar from 'react-bootstrap/Navbar';
 import Badge from 'react-bootstrap/Badge';
 import NavDropdown from 'react-bootstrap/NavDropdown';
 import Nav from 'react-bootstrap/Nav';
+import { invalidateCanvas } from './Canvas3D'
 
-const Navigator = ({sidebarDisplay, setSidebarDisplay}) => {
+
+const Navigator = ({ octreeWorkerRef, displaySettings, setDisplaySettings, sidebarDisplay, setSidebarDisplay}) => {
+
     const handleFormatButtonClick = () => {
         setSidebarDisplay(prev => ({...prev, page:'EditViewSelectionsMenu', show:true}));
     }
@@ -18,6 +22,20 @@ const Navigator = ({sidebarDisplay, setSidebarDisplay}) => {
         }
     };
 
+    const loadUserPLYFile = (e) => {
+        e.stopPropagation()
+        const file = e.target.files[0];
+        if(file) {
+            octreeWorkerRef.current.postMessage({ type: 'LOAD', payload: { file } })
+        }
+    }
+
+    const handleGridSelectCheckbox = () => {
+        const checked = displaySettings['gridVisible']
+        setDisplaySettings({...displaySettings, 'gridVisible':!checked})
+        invalidateCanvas()
+    }
+
     return (
         <Navbar id="Navigator" bg="dark" variant="dark" expand={true} className="w-100 ps-1 pt-0 pe-0 pb-0 d-flex align-items-center">
             <Navbar.Collapse className="h-100 d-flex align-items-center">
@@ -25,7 +43,29 @@ const Navigator = ({sidebarDisplay, setSidebarDisplay}) => {
                     
                     <NavDropdown title="File" className="h-100 d-flex align-items-center">
                         <NavDropdown.Item>New</NavDropdown.Item>
-                        <NavDropdown.Item>Open</NavDropdown.Item>
+                        <NavDropdown.Item 
+                            as="label" 
+                            htmlFor="file-upload" 
+                            style={{ cursor: 'pointer', margin: 0, display: 'block' }}
+                        >
+                            Open
+                            <input
+                                id="file-upload"
+                                type="file"
+                                onChange={loadUserPLYFile}
+                                accept=".ply"
+                                style={{
+                                    position: 'absolute',
+                                    width: '1px',
+                                    height: '1px',
+                                    padding: '0',
+                                    margin: '-1px',
+                                    overflow: 'hidden',
+                                    clip: 'rect(0, 0, 0, 0)',
+                                    border: '0',
+                                }}
+                            />
+                        </NavDropdown.Item>
                         <NavDropdown.Divider/>
                         <NavDropdown.Item>Save</NavDropdown.Item>
                         <NavDropdown.Item>Save As...</NavDropdown.Item>
@@ -50,7 +90,7 @@ const Navigator = ({sidebarDisplay, setSidebarDisplay}) => {
                     <NavDropdown title="View" className="h-100 d-flex align-items-center">
                         <NavDropdown.Item onClick={handleFormatButtonClick}>Format</NavDropdown.Item>
                         <NavDropdown.Divider/>
-                        <NavDropdown.Item>Grid</NavDropdown.Item>
+                        <NavDropdown.Item onClick={handleGridSelectCheckbox}>Grid</NavDropdown.Item>
                         <NavDropdown.Divider/>
                         <NavDropdown.Item>Labels</NavDropdown.Item>
                         <NavDropdown.Item onClick={toggleFullScreen}>Fullscreen</NavDropdown.Item>
