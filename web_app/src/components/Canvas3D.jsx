@@ -1,9 +1,10 @@
 import React from 'react';
 import * as THREE from 'three'
-import { useState , useEffect, Suspense } from 'react';
+import { useState , useEffect, useRef , Suspense } from 'react';
 import { Canvas,  useThree } from '@react-three/fiber'
-import { Environment , FirstPersonControls, OrbitControls, Html } from '@react-three/drei'
+import { Environment , Edges , FirstPersonControls , OrbitControls , Html } from '@react-three/drei'
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js'
+import { VolumeSelectionBox } from './VolumeSelectionBox'
 import OctreeTest from './OctreeTest'
 import * as Loggers from './Loggers'
 //position={[-0.5,1.10,8]} rotation={[-Math.PI/2, 0, Math.PI/2]}
@@ -11,6 +12,11 @@ import * as Loggers from './Loggers'
 
 let invalidateRef = null
 let cameraRef = null
+const binaryPLYFile = "/point_clouds/UFO_2735.ply"
+
+// Helper to create an invisible mathematical plane facing the camera
+const dragPlane = new THREE.Plane();
+const planeIntersectPoint = new THREE.Vector3();
 
 export function invalidateCanvas() {
   console.log('invalidated')
@@ -51,11 +57,9 @@ const BackgroundManager = ({ skyboxVisible, skyboxPreset, backgroundVisible, bac
   return null;
 };
 
-const binaryPLYFile = "/point_clouds/oak_5M.ply"
+function Canvas3D({ octreeWorkerRef , volumeSelections , setVolumeSelections , displaySettings , setSidebarDisplay , setDisplaySettings }) {
+  const [orbitEnabled, setOrbitEnabled] = useState(true);
 
-
-
-function Canvas3D({annotations, setAnnotations, displaySettings, setDisplaySettings }) {
   return (
     <div id="Canvas3D" className="w-100">
       <Canvas
@@ -64,7 +68,7 @@ function Canvas3D({annotations, setAnnotations, displaySettings, setDisplaySetti
           invalidateRef = state.invalidate;
           cameraRef = state.camera;
         }}
-        camera={{ fov: 75, near: 0.0001, far: 1000, position: [0, 1.5, 12] }}
+        camera={{ fov: 75, position: [0, 1.5, 12] }}
       >
         <BackgroundManager 
           skyboxPreset={displaySettings['skyboxPreset']}
@@ -72,12 +76,19 @@ function Canvas3D({annotations, setAnnotations, displaySettings, setDisplaySetti
           backgroundVisible={displaySettings['backgroundVisible']}
           backgroundColor={displaySettings['backgroundColor']}
         />
+        <gridHelper visible={displaySettings["gridVisible"]} args={[10]}/>
 
-        <gridHelper 
-          visible={displaySettings["gridVisible"]} 
-          args={[10]} 
-        />
-        <OrbitControls></OrbitControls>
+        {Object.keys(volumeSelections).map(volumeId => (
+          <VolumeSelectionBox
+            key = {volumeId}
+            volumeId = {volumeId}
+            volumeSelections={volumeSelections} 
+            setVolumeSelections={setVolumeSelections}
+            setOrbitControlsEnabled={setOrbitEnabled} 
+          />
+        ))}
+
+        <OrbitControls makeDefault enabled={orbitEnabled} />
         <ambientLight intensity={1} />
         <directionalLight position={[5, 5, 5]} />
         <OctreeTest 
@@ -85,6 +96,8 @@ function Canvas3D({annotations, setAnnotations, displaySettings, setDisplaySetti
           rotation={[0, 0, 0]} 
           url={binaryPLYFile} 
           octreeMaxLOD={displaySettings['octreeMaxLOD']}
+          setSidebarDisplay={setSidebarDisplay}
+          octreeWorkerRef={octreeWorkerRef}
         />
       </Canvas>
     </div>
@@ -92,30 +105,3 @@ function Canvas3D({annotations, setAnnotations, displaySettings, setDisplaySetti
 }
 
 export default Canvas3D;
-
-
-{/** 
-<FirstPersonControls
-movementSpeed={5} 
-noFly={false}
-lookSpeed={0.05}   
-lookVertical={true}
-/>*/}
-
-{/*<OctreeTest 
-  position={[0, 0, 0]} 
-  rotation={[0, 0, 0]} 
-  url={binaryFile} 
-  displaySettings={displaySettings}
-/>*/}
-
-/*
-{Array.from(annotations.entries()).map(([id, annotation]) => (
-<Html key={id} zIndexRange={[0, 0]} position={annotation.position} transform>
-<div className="annotation bg-dark text-white rounded">{`Object ${annotation.label}`}
-</div>
-</Html>))}
-
-<Html zIndexRange={[0, 0]} position={[0,0,9]} transform> 
-<div className="annotation bg-dark text-white">3D Scanning and Visualization Platform</div>
-</Html>*/
