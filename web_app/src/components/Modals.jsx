@@ -8,6 +8,7 @@ export function DetailsModal({visibleModal, setVisibleModal}) {
     return (
         <Modal
             show = {visibleModal == 'details'}
+            style={{ zIndex: 99999999 }}
             onHide={() => setVisibleModal('')}
             size="lg"
             aria-labelledby="contained-modal-title-vcenter"
@@ -54,11 +55,7 @@ export function ScannerConnectionStatusToast() {
             className="p-0 border border-dark" 
             style={{ position: 'fixed', "bottom": "1.2em", right: 0, zIndex: 1 }}
         >
-            <ToastContainer
-                className="p-0"
-                position={"bottom-end"}
-                style={{ zIndex: 1 }}
-            >
+            <ToastContainer className="p-0"position={"bottom-end"}style={{ zIndex: 1 }}>
                 <Toast onClose={handleClose} show={show}>
                 <Toast.Header>
                     <strong className="me-auto">Scanner Connection Status</strong>
