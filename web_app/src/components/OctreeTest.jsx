@@ -1,82 +1,88 @@
 import * as THREE from 'three'
 import { useEffect, useState, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-// Vite-specific worker import
+import useWebSocketClient from './Websocket';
 import OctreeWorker from './octree.worker.js?worker' 
 
 
-function OctreeTest({ position, rotation, url, octreeMaxLOD }) {
-  const { invalidate, size } = useThree()
-  
+
+function OctreeTest({ octreeWorkerRef , position , rotation , url , octreeMaxLOD , setSidebarDisplay }) {
+  const { invalidate } = useThree()
   const [isLoaded, setIsLoaded] = useState(false)
-  const workerRef = useRef(null)
   const geometryRef = useRef(new THREE.BufferGeometry())
   const positionAttrRef = useRef(null)
   const colorAttrRef = useRef(null)
-  const transferBufferRef = useRef(null) 
-  const isWorkerBusy = useRef(false)
+  const isWorkerBusy = useRef(true)
+  const pointsInsertedRef = useRef(false);
   
-  /*
-  const aspectRatio = useRef(size.width / size.height)
-  useEffect(() => {
-    aspectRatio.current = size.width / size.height
-  }, [size.width, size.height])
-  */
+  //useWebSocketClient({url: "wss://localhost:8001", workerRef : workerRef, pointsInsertedRef:pointsInsertedRef, isWorkerBusy:isWorkerBusy, setSidebarDisplay: setSidebarDisplay});
 
   useEffect(() => {
     invalidate();
-    const worker = new OctreeWorker()
-    workerRef.current = worker
-
-    worker.onmessage = (e) => {
-
+      octreeWorkerRef.current = new OctreeWorker()
+      octreeWorkerRef.current.onmessage = (e) => {
       setTimeout(() => invalidate(), 10);
-      const { type, payload, buffer } = e.data
+      const { type, payload } = e.data; // Removed 'buffer'
 
       if (type === 'READY') {
-        worker.postMessage({ type: 'INIT', payload: { url } })
+        octreeWorkerRef.current.postMessage({ type: 'INIT', payload: { url } })
       } 
       
       else if (type === 'INIT_DONE') {
-        const { maxPoints } = payload;
-        const byteSize = maxPoints * 4 * 4;
-
-        const displayArray = new Float32Array(new ArrayBuffer(byteSize));
-        const positionBuffer = new THREE.InterleavedBuffer(displayArray, 4);
-        const colorBuffer = new THREE.InterleavedBuffer(new Uint8Array(displayArray.buffer), 16);
+        const { sharedBuffer } = payload;
+        const positionBuffer = new THREE.InterleavedBuffer(new Float32Array(sharedBuffer), 4);
+        const colorBuffer = new THREE.InterleavedBuffer(new Uint8Array(sharedBuffer), 16);
         positionAttrRef.current = new THREE.InterleavedBufferAttribute(positionBuffer, 3, 0);
         colorAttrRef.current = new THREE.InterleavedBufferAttribute(colorBuffer, 4, 12, true);
-        positionAttrRef.current.data.needsUpdate = true;
-        colorAttrRef.current.data.needsUpdate = true;
-        geometryRef.current.setAttribute('position', positionAttrRef.current);
-        geometryRef.current.setAttribute('color', colorAttrRef.current);
-        transferBufferRef.current = new ArrayBuffer(byteSize);
+        console.log('done')
+        isWorkerBusy.current = false;
         setIsLoaded(true);
       }
 
-      else if (type === 'UPDATE_DONE') {
-        positionAttrRef.current.data.set(new Float32Array(buffer)) 
+      else if (type === 'LOAD_DONE') {
+        console.log('loading done')
+        console.log(positionAttrRef.current)
+        console.log(colorAttrRef.current)
+        if(pointsInsertedRef.current == false) {
+          geometryRef.current.setAttribute('position', positionAttrRef.current);
+          geometryRef.current.setAttribute('color', colorAttrRef.current);    
+          geometryRef.current.setDrawRange(0, 3);
+          positionAttrRef.current.data.needsUpdate = true;
+          colorAttrRef.current.data.needsUpdate = true; 
+          pointsInsertedRef.current = true;
+        }
         positionAttrRef.current.data.needsUpdate = true;
         colorAttrRef.current.data.needsUpdate = true;
+        isWorkerBusy.current = false;  
+      }
+
+      else if (type == 'INSERT_DONE') {
+        positionAttrRef.current.data.needsUpdate = true;
+        colorAttrRef.current.data.needsUpdate = true;
+        isWorkerBusy.current = false; 
+      }
+
+      else if (type === 'UPDATE_DONE') {
+        positionAttrRef.current.data.needsUpdate = true;
+        colorAttrRef.current.data.needsUpdate = true;        
         geometryRef.current.setDrawRange(0, payload.vertexCount);
-        transferBufferRef.current = buffer;
         isWorkerBusy.current = false;
       }
 
       else if (type === 'NO_UPDATE') {
-        transferBufferRef.current = buffer;
         isWorkerBusy.current = false;
       }
     }
-
-    return () => {worker.terminate()}
+    return () => {octreeWorkerRef.current.terminate()}
   }, [url])
 
-  useFrame((state) => {
-    if (!isLoaded || isWorkerBusy.current || !transferBufferRef.current) return
-    
-    isWorkerBusy.current = true
 
+  useFrame((state) => {
+    //console.log("isLoaded" + isLoaded)
+    //console.log(isWorkerBusy.current)
+    if (!isLoaded || isWorkerBusy.current) return;
+    isWorkerBusy.current = true;
+    
     const cameraData = {
       pos: { 
         x: state.camera.position.x, 
@@ -87,22 +93,19 @@ function OctreeTest({ position, rotation, url, octreeMaxLOD }) {
       pm: [...state.camera.projectionMatrix.elements],
       aspectRatio: state.camera.aspect,
       maxLOD: octreeMaxLOD
-    }
-
-    workerRef.current.postMessage({
+    };
+    
+    // 4. No need to pass a buffer back, just send the camera data
+    octreeWorkerRef.current.postMessage({
       type: 'UPDATE',
-      payload: cameraData,
-      buffer: transferBufferRef.current 
-    }, [transferBufferRef.current]) 
-
-    transferBufferRef.current = null 
-
-  })
+      payload: cameraData
+    });
+  });
 
   return (
     <group position={position} rotation={rotation}>
       <points geometry={geometryRef.current} dispose={null} frustumCulled={false}>
-        <pointsMaterial size={0.02} sizeAttenuation vertexColors={true} />
+        <pointsMaterial size={0.03} sizeAttenuation vertexColors={true} />
       </points>
     </group>
   )
