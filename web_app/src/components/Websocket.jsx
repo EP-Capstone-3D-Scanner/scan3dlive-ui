@@ -16,10 +16,9 @@ function useWebsocketClient({url, workerRef, isWorkerBusy, pointsInsertedRef, se
         }
 
         ws.onmessage = (event) => {
-            if(workerRef) {
+            if(workerRef && !isWorkerBusy.current) {
                 isWorkerBusy.current = true;
                 workerRef.current.postMessage({type: 'INSERT', payload: event.data})
-                pointsInsertedRef.current = true;
             }
         }
 

@@ -27,6 +27,7 @@ self.onmessage = async (e) => {
   if (type === 'INIT') {
     try {
       sharedBuffer = new SharedArrayBuffer(byteSize);
+      console.log(sharedBuffer.byteLength)
       sharedFloat32View = new Float32Array(sharedBuffer);
       self.postMessage({ 
         type: 'INIT_DONE', 
@@ -40,19 +41,15 @@ self.onmessage = async (e) => {
   
   else if (type === 'LOAD') {
     try {
-      console.log(payload.file)
       const arrayBuffer = await payload.file.arrayBuffer();
-      console.log(arrayBuffer)
       const dataPtr = OctreeHelper._malloc(arrayBuffer.byteLength);
       OctreeHelper.HEAPU8.set(new Uint8Array(arrayBuffer), dataPtr);
       maxPointsCapacity = OctreeHelper._loadPointsXYZFromBinaryPLY(dataPtr, arrayBuffer.byteLength); // TODO: Update this function to return the number of points
       OctreeHelper._free(dataPtr);
-      
       self.postMessage({ 
         type: 'LOAD_DONE', 
       });
     } 
-    
     catch (err) {
       console.error("Worker Load File Error:", err);
     }

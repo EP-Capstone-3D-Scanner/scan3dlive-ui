@@ -15,14 +15,14 @@ function OctreeTest({ octreeWorkerRef , position , rotation , url , octreeMaxLOD
   const isWorkerBusy = useRef(true)
   const pointsInsertedRef = useRef(false);
   
-  //useWebSocketClient({url: "wss://localhost:8001", workerRef : workerRef, pointsInsertedRef:pointsInsertedRef, isWorkerBusy:isWorkerBusy, setSidebarDisplay: setSidebarDisplay});
+  useWebSocketClient({url: "wss://localhost:8001", workerRef : octreeWorkerRef, pointsInsertedRef:pointsInsertedRef, isWorkerBusy:isWorkerBusy, setSidebarDisplay: setSidebarDisplay});
 
   useEffect(() => {
     invalidate();
       octreeWorkerRef.current = new OctreeWorker()
       octreeWorkerRef.current.onmessage = (e) => {
-      setTimeout(() => invalidate(), 10);
-      const { type, payload } = e.data; // Removed 'buffer'
+      setInterval(()=>{invalidate()}, 1)
+      const { type, payload } = e.data;
 
       if (type === 'READY') {
         octreeWorkerRef.current.postMessage({ type: 'INIT', payload: { url } })
@@ -33,7 +33,7 @@ function OctreeTest({ octreeWorkerRef , position , rotation , url , octreeMaxLOD
         const positionBuffer = new THREE.InterleavedBuffer(new Float32Array(sharedBuffer), 4);
         const colorBuffer = new THREE.InterleavedBuffer(new Uint8Array(sharedBuffer), 16);
         positionAttrRef.current = new THREE.InterleavedBufferAttribute(positionBuffer, 3, 0);
-        colorAttrRef.current = new THREE.InterleavedBufferAttribute(colorBuffer, 4, 12, true);
+        colorAttrRef.current = new THREE.InterleavedBufferAttribute(colorBuffer, 4, 12, true);      
         console.log('done')
         isWorkerBusy.current = false;
         setIsLoaded(true);
@@ -41,14 +41,11 @@ function OctreeTest({ octreeWorkerRef , position , rotation , url , octreeMaxLOD
 
       else if (type === 'LOAD_DONE') {
         console.log('loading done')
-        console.log(positionAttrRef.current)
-        console.log(colorAttrRef.current)
         if(pointsInsertedRef.current == false) {
           geometryRef.current.setAttribute('position', positionAttrRef.current);
-          geometryRef.current.setAttribute('color', colorAttrRef.current);    
-          geometryRef.current.setDrawRange(0, 3);
-          positionAttrRef.current.data.needsUpdate = true;
-          colorAttrRef.current.data.needsUpdate = true; 
+          geometryRef.current.setAttribute('color', colorAttrRef.current);
+          positionAttrRef.current.data.setUsage(THREE.DynamicDrawUsage);
+          colorAttrRef.current.data.setUsage(THREE.DynamicDrawUsage);      
           pointsInsertedRef.current = true;
         }
         positionAttrRef.current.data.needsUpdate = true;
@@ -57,8 +54,13 @@ function OctreeTest({ octreeWorkerRef , position , rotation , url , octreeMaxLOD
       }
 
       else if (type == 'INSERT_DONE') {
-        positionAttrRef.current.data.needsUpdate = true;
-        colorAttrRef.current.data.needsUpdate = true;
+        if(pointsInsertedRef.current == false) {
+          geometryRef.current.setAttribute('position', positionAttrRef.current);
+          geometryRef.current.setAttribute('color', colorAttrRef.current);
+          positionAttrRef.current.data.setUsage(THREE.DynamicDrawUsage);
+          colorAttrRef.current.data.setUsage(THREE.DynamicDrawUsage);      
+          pointsInsertedRef.current = true;
+        }
         isWorkerBusy.current = false; 
       }
 
@@ -78,9 +80,7 @@ function OctreeTest({ octreeWorkerRef , position , rotation , url , octreeMaxLOD
 
 
   useFrame((state) => {
-    //console.log("isLoaded" + isLoaded)
-    //console.log(isWorkerBusy.current)
-    if (!isLoaded || isWorkerBusy.current) return;
+    if (!isLoaded) return;
     isWorkerBusy.current = true;
     
     const cameraData = {
