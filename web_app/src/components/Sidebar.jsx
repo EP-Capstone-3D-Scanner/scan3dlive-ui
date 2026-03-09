@@ -137,7 +137,10 @@ function UpdateVolumeSelectionMenu({sidebarDisplay, setSidebarDisplay, volumeSel
     };
 
     const handleSizeChange = (axisIndex, newValue) => {
-        let val = parseFloat(newValue)||0; 
+        let val = parseFloat(newValue)||newValue; 
+        if(parseFloat(val) && val < 0) {
+            val = 0;
+        }
         const volumeId = sidebarDisplay['selectedVolume'];
 
         setVolumeSelections(prev => ({

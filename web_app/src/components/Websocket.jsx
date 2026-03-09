@@ -1,31 +1,35 @@
-import { useEffect } from "react";
+import { useEffect , useRef } from "react";
 
-function useWebsocketClient({url, workerRef, isWorkerBusy, pointsInsertedRef, setSidebarDisplay}) {;
-    useEffect(() =>{
-        const ws = new WebSocket(url);
-        ws.binaryType = "arraybuffer";
+function useWebsocketClient({url, scannerReconnecting , workerRef, isWorkerBusy, setSidebarDisplay}) {
+    const ws = useRef(null);
+
+    useEffect(() => {
+        ws.current = new WebSocket(url);
+        ws.current.binaryType = "arraybuffer";
         
-        ws.onopen = () => {
+        ws.current.onopen = () => {
             console.log("WebSocket connection established");
             setSidebarDisplay(prev => ({...prev, scannerOnline: true}));
         }
 
-        ws.onclose = () => {
+        ws.current.onclose = () => {
             console.log("WebSocket connection closed");
             setSidebarDisplay(prev => ({...prev, scannerOnline: false}));
         }
 
-        ws.onmessage = (event) => {
-            if(workerRef && !isWorkerBusy.current) {
+        ws.current.onmessage = (event) => {
+            if(workerRef) { // && !isWorkerBusy.current
                 isWorkerBusy.current = true;
                 workerRef.current.postMessage({type: 'INSERT', payload: event.data})
             }
         }
 
         return () => {
-            ws.close();
+            ws.current.close();
         };
-    }, [url])
+    }, [url, scannerReconnecting])
+
+    return ws
 }
 
 export default useWebsocketClient;

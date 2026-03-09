@@ -7,7 +7,7 @@ import Nav from 'react-bootstrap/Nav';
 import { invalidateCanvas } from './Canvas3D'
 
 
-const Navigator = ({ octreeWorkerRef, displaySettings, setDisplaySettings, sidebarDisplay, setSidebarDisplay}) => {
+const Navigator = ({ websocketRef , octreeWorkerRef, displaySettings, setDisplaySettings, sidebarDisplay, setSidebarDisplay}) => {
 
     const handleFormatButtonClick = () => {
         setSidebarDisplay(prev => ({...prev, page:'EditViewSelectionsMenu', show:true}));
@@ -36,8 +36,33 @@ const Navigator = ({ octreeWorkerRef, displaySettings, setDisplaySettings, sideb
         invalidateCanvas()
     }
 
+    const handleConnectScanner = (e) => {
+        const refreshCount = sidebarDisplay['scannerReconnecting'] + 1;
+        console.log('attempting to reconnect')
+        setSidebarDisplay((prev) => ({...prev, "scannerReconnecting":refreshCount}))
+    }
+
+    const handleStartScanner = (e) => {
+        console.log(websocketRef.current)
+        if (websocketRef.current && websocketRef.current.readyState === WebSocket.OPEN) {
+            websocketRef.current.send(JSON.stringify({ 
+                type: 'COMMAND', 
+                action: 'start_scanner' 
+            }));
+        }
+    };
+
+    const handleStopScanner = (e) => {
+        if (websocketRef.current && websocketRef.current.readyState === WebSocket.OPEN) {
+            websocketRef.current.send(JSON.stringify({ 
+                type: 'COMMAND', 
+                action: 'stop_scanner' 
+            }));
+        }
+    };
+
     return (
-        <Navbar id="Navigator" bg="dark" variant="dark" expand={true} className="w-100 ps-1 pt-0 pe-0 pb-0 d-flex align-items-center">
+        <Navbar collapseOnSelect id="Navigator" bg="dark" variant="dark" className="w-100 ps-1 pt-0 pe-0 pb-0 d-flex align-items-center">
             <Navbar.Collapse className="h-100 d-flex align-items-center">
                 <Nav className="h-100 w-100 p-0 d-flex flex-row align-items-center">
                     
@@ -99,10 +124,10 @@ const Navigator = ({ octreeWorkerRef, displaySettings, setDisplaySettings, sideb
                     </NavDropdown>
 
                     <NavDropdown title="Network" className="h-100 d-flex align-items-center">
-                        <NavDropdown.Item>Connect to Scanner</NavDropdown.Item>
+                        <NavDropdown.Item onClick={handleConnectScanner}>Connect to Scanner</NavDropdown.Item>
                         <NavDropdown.Divider/>
-                        <NavDropdown.Item>Start Scanner</NavDropdown.Item>
-                        <NavDropdown.Item>Stop Scanner</NavDropdown.Item>
+                        <NavDropdown.Item onClick={handleStartScanner}>Start Scanner</NavDropdown.Item>
+                        <NavDropdown.Item onClick={handleStopScanner}>Stop Scanner</NavDropdown.Item>
                     </NavDropdown>
                 </Nav>
                 <Badge className={`me-2 scanner-badge-${sidebarDisplay.scannerOnline ? "online" : "offline"}`}>

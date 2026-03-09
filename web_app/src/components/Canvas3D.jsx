@@ -2,7 +2,7 @@ import React from 'react';
 import * as THREE from 'three'
 import { useState , useEffect, useRef , Suspense } from 'react';
 import { Canvas,  useThree } from '@react-three/fiber'
-import { Environment , Edges , FirstPersonControls , OrbitControls , Html } from '@react-three/drei'
+import { Environment , FirstPersonControls , OrbitControls} from '@react-three/drei'
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js'
 import { VolumeSelectionBox } from './VolumeSelectionBox'
 import OctreeTest from './OctreeTest'
@@ -13,10 +13,6 @@ import * as Loggers from './Loggers'
 let invalidateRef = null
 let cameraRef = null
 const binaryPLYFile = "/point_clouds/UFO_2735.ply"
-
-// Helper to create an invisible mathematical plane facing the camera
-const dragPlane = new THREE.Plane();
-const planeIntersectPoint = new THREE.Vector3();
 
 export function invalidateCanvas() {
   console.log('invalidated')
@@ -57,13 +53,13 @@ const BackgroundManager = ({ skyboxVisible, skyboxPreset, backgroundVisible, bac
   return null;
 };
 
-function Canvas3D({ octreeWorkerRef , volumeSelections , setVolumeSelections , displaySettings , setSidebarDisplay , setDisplaySettings }) {
+function Canvas3D({ websocketRef , octreeWorkerRef , scannerReconnecting , volumeSelections , setVolumeSelections , displaySettings , setSidebarDisplay , isWorkerBusy , setDisplaySettings }) {
   const [orbitEnabled, setOrbitEnabled] = useState(true);
 
   return (
     <div id="Canvas3D" className="w-100">
       <Canvas
-        frameloop="demand"
+        
         onCreated={(state) => {
           invalidateRef = state.invalidate;
           cameraRef = state.camera;
@@ -98,6 +94,9 @@ function Canvas3D({ octreeWorkerRef , volumeSelections , setVolumeSelections , d
           octreeMaxLOD={displaySettings['octreeMaxLOD']}
           setSidebarDisplay={setSidebarDisplay}
           octreeWorkerRef={octreeWorkerRef}
+          websocketRef={websocketRef}
+          scannerReconnecting={scannerReconnecting}
+          isWorkerBusy={isWorkerBusy}
         />
       </Canvas>
     </div>

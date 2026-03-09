@@ -6,75 +6,76 @@ import OctreeWorker from './octree.worker.js?worker'
 
 
 
-function OctreeTest({ octreeWorkerRef , position , rotation , url , octreeMaxLOD , setSidebarDisplay }) {
+function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , scannerReconnecting , position , rotation , url , octreeMaxLOD , setSidebarDisplay }) {
   const { invalidate } = useThree()
   const [isLoaded, setIsLoaded] = useState(false)
   const geometryRef = useRef(new THREE.BufferGeometry())
   const positionAttrRef = useRef(null)
   const colorAttrRef = useRef(null)
-  const isWorkerBusy = useRef(true)
   const pointsInsertedRef = useRef(false);
   
-  useWebSocketClient({url: "wss://localhost:8001", workerRef : octreeWorkerRef, pointsInsertedRef:pointsInsertedRef, isWorkerBusy:isWorkerBusy, setSidebarDisplay: setSidebarDisplay});
-
   useEffect(() => {
-    invalidate();
+      invalidate();
       octreeWorkerRef.current = new OctreeWorker()
       octreeWorkerRef.current.onmessage = (e) => {
-      setInterval(()=>{invalidate()}, 1)
-      const { type, payload } = e.data;
+        setInterval(()=>{invalidate()}, 1)
+        const { type, payload } = e.data;
 
-      if (type === 'READY') {
-        octreeWorkerRef.current.postMessage({ type: 'INIT', payload: { url } })
-      } 
-      
-      else if (type === 'INIT_DONE') {
-        const { sharedBuffer } = payload;
-        const positionBuffer = new THREE.InterleavedBuffer(new Float32Array(sharedBuffer), 4);
-        const colorBuffer = new THREE.InterleavedBuffer(new Uint8Array(sharedBuffer), 16);
-        positionAttrRef.current = new THREE.InterleavedBufferAttribute(positionBuffer, 3, 0);
-        colorAttrRef.current = new THREE.InterleavedBufferAttribute(colorBuffer, 4, 12, true);      
-        console.log('done')
-        isWorkerBusy.current = false;
-        setIsLoaded(true);
-      }
-
-      else if (type === 'LOAD_DONE') {
-        console.log('loading done')
-        if(pointsInsertedRef.current == false) {
-          geometryRef.current.setAttribute('position', positionAttrRef.current);
-          geometryRef.current.setAttribute('color', colorAttrRef.current);
-          positionAttrRef.current.data.setUsage(THREE.DynamicDrawUsage);
-          colorAttrRef.current.data.setUsage(THREE.DynamicDrawUsage);      
-          pointsInsertedRef.current = true;
+        if (type === 'READY') {
+          octreeWorkerRef.current.postMessage({ type: 'INIT', payload: { url } })
+        } 
+        
+        else if (type === 'INIT_DONE') {
+          const { sharedBuffer } = payload;
+          const positionBuffer = new THREE.InterleavedBuffer(new Float32Array(sharedBuffer), 4);
+          const colorBuffer = new THREE.InterleavedBuffer(new Uint8Array(sharedBuffer), 16);
+          positionAttrRef.current = new THREE.InterleavedBufferAttribute(positionBuffer, 3, 0);
+          colorAttrRef.current = new THREE.InterleavedBufferAttribute(colorBuffer, 4, 12, true);      
+          console.log('done')
+          isWorkerBusy.current = false;
+          setIsLoaded(true);
         }
-        positionAttrRef.current.data.needsUpdate = true;
-        colorAttrRef.current.data.needsUpdate = true;
-        isWorkerBusy.current = false;  
-      }
 
-      else if (type == 'INSERT_DONE') {
-        if(pointsInsertedRef.current == false) {
-          geometryRef.current.setAttribute('position', positionAttrRef.current);
-          geometryRef.current.setAttribute('color', colorAttrRef.current);
-          positionAttrRef.current.data.setUsage(THREE.DynamicDrawUsage);
-          colorAttrRef.current.data.setUsage(THREE.DynamicDrawUsage);      
-          pointsInsertedRef.current = true;
+        else if (type === 'LOAD_DONE') {
+          console.log('loading done')
+          if(pointsInsertedRef.current == false) {
+            geometryRef.current.setAttribute('position', positionAttrRef.current);
+            geometryRef.current.setAttribute('color', colorAttrRef.current);
+            positionAttrRef.current.data.setUsage(THREE.DynamicDrawUsage);
+            colorAttrRef.current.data.setUsage(THREE.DynamicDrawUsage);      
+            pointsInsertedRef.current = true;
+          }
+          positionAttrRef.current.data.needsUpdate = true;
+          colorAttrRef.current.data.needsUpdate = true;
+          isWorkerBusy.current = false;  
         }
-        isWorkerBusy.current = false; 
-      }
 
-      else if (type === 'UPDATE_DONE') {
-        positionAttrRef.current.data.needsUpdate = true;
-        colorAttrRef.current.data.needsUpdate = true;        
-        geometryRef.current.setDrawRange(0, payload.vertexCount);
-        isWorkerBusy.current = false;
-      }
+        else if (type == 'INSERT_DONE') {
+          if(pointsInsertedRef.current == false) {
+            geometryRef.current.setAttribute('position', positionAttrRef.current);
+            geometryRef.current.setAttribute('color', colorAttrRef.current);
+            positionAttrRef.current.data.setUsage(THREE.DynamicDrawUsage);
+            colorAttrRef.current.data.setUsage(THREE.DynamicDrawUsage);      
+            pointsInsertedRef.current = true;
+          }
+          isWorkerBusy.current = false; 
+          // Send an ACK back to the server requesting the next batch
+          if (websocketRef.current && websocketRef.current.readyState === WebSocket.OPEN) {
+              websocketRef.current.send(JSON.stringify({ type: 'ACK' }));
+          }
+        }
 
-      else if (type === 'NO_UPDATE') {
-        isWorkerBusy.current = false;
+        else if (type === 'UPDATE_DONE') {
+          positionAttrRef.current.data.needsUpdate = true;
+          colorAttrRef.current.data.needsUpdate = true;        
+          geometryRef.current.setDrawRange(0, payload.vertexCount);
+          isWorkerBusy.current = false;
+        }
+
+        else if (type === 'NO_UPDATE') {
+          isWorkerBusy.current = false;
+        }
       }
-    }
     return () => {octreeWorkerRef.current.terminate()}
   }, [url])
 
@@ -100,6 +101,7 @@ function OctreeTest({ octreeWorkerRef , position , rotation , url , octreeMaxLOD
       type: 'UPDATE',
       payload: cameraData
     });
+    console.log('ran update')
   });
 
   return (

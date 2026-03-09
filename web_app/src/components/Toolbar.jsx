@@ -1,5 +1,6 @@
 import ToolbarButton from './ToolbarButton'
 import { invalidateCanvas, getCamera } from './Canvas3D'
+import Form from 'react-bootstrap/Form';
 
 const Toolbar = ({sidebarDisplay, setSidebarDisplay}) => {
     const handleClipButtonClick = () => {
@@ -32,6 +33,29 @@ const Toolbar = ({sidebarDisplay, setSidebarDisplay}) => {
             <ToolbarButton onClick={setSidebarDisplay} icon="reply-arrow-icon.svg" title="Undo"></ToolbarButton>
             <ToolbarButton onClick={setSidebarDisplay} icon="forward-arrow-icon.svg" title="Redo"></ToolbarButton>
             <ToolbarButton onClick={setSidebarDisplay} icon="recycle-bin-icon.svg" title="Delete"></ToolbarButton>
+            <Form.Select 
+                className="bg-dark text-light ms-2" 
+                style={{ width: '10em', padding: '0.1em 0.6em' }}
+                value=""
+                size="sm"
+            >
+                <option disabled hidden value="">Select Option</option>
+                <option value="0">None</option>
+                <option value="1">Beam</option>
+                <option value="2">Board</option>
+                <option value="3">Bookcase</option>
+                <option value="4">Ceiling</option>
+                <option value="5">Chair</option>
+                <option value="6">Column</option>
+                <option value="7">Door</option>
+                <option value="8">Floor</option>
+                <option value="9">Sofa</option>
+                <option value="10">Table</option>
+                <option value="11">Wall</option>
+                <option value="12">Window</option>
+                <option value="13">Clutter</option>
+            </Form.Select>
+            
             <button 
                 className="Sidebar-toggle-button ms-auto h-100" 
                 onClick={()=>{
