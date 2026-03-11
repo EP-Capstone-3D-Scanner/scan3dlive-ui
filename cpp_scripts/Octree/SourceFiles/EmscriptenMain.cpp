@@ -13,6 +13,7 @@
 // cd emcc -O2 SourceFiles/EmscriptenMain.cpp SourceFiles/ModifiableNestedOctree.cpp SourceFiles/BoundingBox.cpp SourceFiles/Camera.cpp SourceFiles/Points.cpp -I HeaderFiles -o OctreeModulePLYInsertionTest.js -sEXPORT_ES6 -sEXPORTED_FUNCTIONS=_malloc,_free -sEXPORTED_RUNTIME_METHODS=HEAPF32,HEAPU32 -sINITIAL_MEMORY=512MB
 // emcc -O3 SourceFiles/EmscriptenMain.cpp SourceFiles/ModifiableNestedOctree.cpp SourceFiles/BoundingBox.cpp SourceFiles/Camera.cpp SourceFiles/Points.cpp -I HeaderFiles -o OctreeModulePLYInsertionTest.js -sEXPORT_ES6 -sEXPORTED_FUNCTIONS=_malloc,_free -sEXPORTED_RUNTIME_METHODS=HEAPF32,HEAPU32,HEAPU8 -sINITIAL_MEMORY=2048MB
 // emcc -sENVIRONMENT=web -sMALLOC=emmalloc -O3 -flto SourceFiles/EmscriptenMain.cpp SourceFiles/ModifiableNestedOctree.cpp SourceFiles/BoundingBox.cpp SourceFiles/Camera.cpp SourceFiles/Points.cpp -I HeaderFiles -o OctreeModuleColorTest.js -sEXPORT_ES6 -sEXPORTED_FUNCTIONS=_malloc,_free -sEXPORTED_RUNTIME_METHODS=HEAPF32,HEAPU32,HEAPU8 -sINITIAL_MEMORY=2048MB -sALLOW_MEMORY_GROWTH=0
+// emcc -sENVIRONMENT=web -sMALLOC=emmalloc -O3 -flto -msimd128 -msse SourceFiles/EmscriptenMain.cpp SourceFiles/tinyply.cpp SourceFiles/BoundingBox.cpp SourceFiles/Camera.cpp SourceFiles/Points.cpp -I HeaderFiles -o OctreeModuleProfiledTest.js -sEXPORT_ES6 -sEXPORTED_FUNCTIONS=_malloc,_free -sEXPORTED_RUNTIME_METHODS=HEAPF32,HEAPU32,HEAPU8 -sINITIAL_MEMORY=2048MB -sALLOW_MEMORY_GROWTH=1 -sASSERTIONS=1
 
 uint32_t load_ply(std::vector<PointXYZRGBA>& points, const uint8_t* dataPtr, size_t dataSize) {
 
@@ -203,6 +204,16 @@ extern "C" {
     EMSCRIPTEN_KEEPALIVE
     void * getVisibleOctreeNodes(int maxDepth, float minPixelSize) {
         return ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].serializeForR3F(c, maxDepth, minPixelSize);
+    }
+
+    EMSCRIPTEN_KEEPALIVE
+    void * getOctreeBinaryPLY() {
+        return ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].serializeFullOctreeToPLY();
+    }
+
+    EMSCRIPTEN_KEEPALIVE
+    void clearOctree() {
+        ModifiableNestedOctree<PointXYZRGBA>::clear();
     }
 }
 

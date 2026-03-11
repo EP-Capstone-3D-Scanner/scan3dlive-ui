@@ -10,6 +10,7 @@
 #include <vector>
 #include <fstream>
 #include <string>
+#include <sstream>
 #include <algorithm>
 
 
@@ -46,12 +47,11 @@ private:
 
 
 public:
+    inline static uint32_t ROOT_ID = 0;
+    inline static int POINT_COUNT = 0;
     inline static std::vector<ModifiableNestedOctree> MNO;
     static void expandRoot(const BoundingBox& box);
-    inline static uint32_t ROOT_ID = 0;
-
-    /** Point Count Tracker */
-    inline static int POINT_COUNT = 0;
+    static void clear();
 
     /**
      * @brief MNO constructor functions
@@ -91,6 +91,7 @@ public:
     * @param minPixelSize The minimum pixel size for MNO node to display
     */
     uint8_t* serializeForR3F(const Camera& c, int maxDepth, float minPixelSize) const;
+    uint8_t* serializeFullOctreeToPLY();
 
     /**
     * Compiles MNO node into output buffer (float)
@@ -101,6 +102,7 @@ public:
     */
     void compileTree(std::vector<float>& out, int currentDepth, int maxDepth) const;
     void compileR3FTree(std::vector<float>& out, const Camera& c, int depth, int maxDepth, float minPixelSize) const;
+    
     /**
      * @brief Getters functions for MNO class
      */
@@ -125,6 +127,14 @@ ModifiableNestedOctree<PointT>::ModifiableNestedOctree(const uint32_t id_, const
 template <typename PointT>
 ModifiableNestedOctree<PointT>::ModifiableNestedOctree(const uint32_t id_,const uint32_t parent_, const PointXYZ& minCorner_, const PointXYZ& maxCorner_): id(id_), parent(parent_), boundingBox(minCorner_, maxCorner_) {
     pointGridMap.reserve(0);
+}
+
+template <typename PointT>
+void ModifiableNestedOctree<PointT>::clear() {
+    MNO.clear();
+    freeMNOIndices.clear();
+    ROOT_ID = 0;
+    POINT_COUNT = 0;
 }
 
 template <typename PointT>
@@ -455,12 +465,6 @@ uint8_t* ModifiableNestedOctree<PointT>::serializeForR3F(const Camera& c, int ma
     for (const auto* node : visibleNodes) {
         for (const auto& kv : node->pointGridMap) {
             const PointT& p = kv.second;
-            
-            // OPTION A: If your struct layout is exactly [x,y,z,r,g,b,a] with no padding:
-            // std::memcpy(writePtr, &p, 16);
-            // writePtr += 16;
-
-            // OPTION B: Safer and still extremely fast (Direct Writing)
             *(reinterpret_cast<float*>(writePtr)) = p.x;
             *(reinterpret_cast<float*>(writePtr + 4)) = p.y;
             *(reinterpret_cast<float*>(writePtr + 8)) = p.z;
@@ -469,6 +473,72 @@ uint8_t* ModifiableNestedOctree<PointT>::serializeForR3F(const Camera& c, int ma
             writePtr[14] = p.b;
             writePtr[15] = p.a;
             writePtr += 16;
+        }
+    }
+
+    return buffer;
+}
+
+// Need to clean this up
+template <typename PointT>
+uint8_t* ModifiableNestedOctree<PointT>::serializeFullOctreeToPLY() {
+    // 1. Calculate total point count across all nodes
+    size_t totalPoints = 0;
+    for (const auto& node : MNO) {
+        totalPoints += node.pointGridMap.size();
+    }
+
+    // 2. Generate the PLY Header
+    std::stringstream header;
+    header << "ply\n";
+    header << "format binary_little_endian 1.0\n";
+    header << "element vertex " << totalPoints << "\n";
+    header << "property float x\n";
+    header << "property float y\n";
+    header << "property float z\n";
+    header << "property uchar red\n";
+    header << "property uchar green\n";
+    header << "property uchar blue\n";
+    header << "property uchar alpha\n";
+    header << "end_header\n";
+    
+    std::string headerStr = header.str();
+    
+    // 3. Calculate memory requirements
+    // Each point: 3 * float (12 bytes) + 4 * uint8 (4 bytes) = 16 bytes
+    const size_t bytesPerPoint = 16;
+    uint32_t plyDataSize = static_cast<uint32_t>(headerStr.size() + (totalPoints * bytesPerPoint));
+    uint32_t totalBufferSize = sizeof(uint32_t) + plyDataSize;
+
+    // 4. Allocate buffer (use malloc so JS can free it if needed, or manage via C++)
+    uint8_t* buffer = static_cast<uint8_t*>(std::malloc(totalBufferSize));
+    if (!buffer) return nullptr;
+
+    // 5. Write the payload size (the "header" for JS)
+    std::memcpy(buffer, &plyDataSize, sizeof(uint32_t));
+
+    // 6. Write the PLY Header string
+    uint8_t* writePtr = buffer + sizeof(uint32_t);
+    std::memcpy(writePtr, headerStr.data(), headerStr.size());
+    writePtr += headerStr.size();
+
+    // 7. Write Binary Point Data
+    for (const auto& node : MNO) {
+        for (const auto& kv : node.pointGridMap) {
+            const PointT& p = kv.second;
+            
+            // XYZ (12 bytes)
+            *(reinterpret_cast<float*>(writePtr)) = p.x;
+            *(reinterpret_cast<float*>(writePtr + 4)) = p.y;
+            *(reinterpret_cast<float*>(writePtr + 8)) = p.z;
+            
+            // RGBA (4 bytes)
+            writePtr[12] = p.r;
+            writePtr[13] = p.g;
+            writePtr[14] = p.b;
+            writePtr[15] = p.a;
+            
+            writePtr += bytesPerPoint;
         }
     }
 
