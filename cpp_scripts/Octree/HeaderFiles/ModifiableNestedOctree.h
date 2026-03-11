@@ -134,7 +134,9 @@ void ModifiableNestedOctree<PointT>::insertPoint(const PointT& point) {
         return;
     }
     uint32_t currentNodeId = id;
-    while (MNO[currentNodeId].insertPointInGrid(point) == UINT16_MAX) {
+    //uint32_t count = 0;
+    while ((MNO[currentNodeId].insertPointInGrid(point) == UINT16_MAX) /*&& count< 2*/) {
+        //count +=1;
         uint8_t childIndex = MNO[currentNodeId].getPointOctant(point);
         currentNodeId = MNO[currentNodeId].createChild(childIndex);
     }
@@ -144,14 +146,15 @@ template <typename PointT>
 uint16_t ModifiableNestedOctree<PointT>::insertPointInGrid(const PointT& point) {
     uint16_t gridCell = getPointGridCell(point);
 
-    if(pointGridMap.find(gridCell) == pointGridMap.end()) {
-        // Can insert point in cell if this runs
-        pointGridMap[gridCell] = point;
+    // One lookup to rule them all
+    auto [it, inserted] = pointGridMap.try_emplace(gridCell, point);
+
+    if (inserted) {
         POINT_COUNT++;
         return gridCell;
     }
 
-    return UINT16_MAX; // Cell already occupied
+    return UINT16_MAX; 
 }
 
 template <typename PointT>
@@ -401,27 +404,15 @@ void ModifiableNestedOctree<PointT>::repairLOD(uint32_t originalRootId) {
 // Need to create function that will automatially serialize points
 template <typename PointT>
 uint8_t* ModifiableNestedOctree<PointT>::serializeForR3F(const Camera& c, int maxDepth, float minPixelSize) const {
-    std::vector<uint8_t> positions;
+    // 1. First Pass: Collect visible nodes and count total points
+    std::vector<const ModifiableNestedOctree*> visibleNodes;
+    size_t totalPoints = 0;
 
-    size_t bytesPerPoint = 4*sizeof(float); // TODO: make function that serializes points
-    positions.reserve(POINT_COUNT * bytesPerPoint);
-
-    auto appendBytes = [&](const auto& value) {
-        const uint8_t* ptr = reinterpret_cast<const uint8_t*>(&value);
-        positions.insert(positions.end(), ptr, ptr + sizeof(value));
-    };
-    
-    struct NodeState {
-        const ModifiableNestedOctree* node;
-        int depth;
-    };
-
+    struct NodeState { const ModifiableNestedOctree* node; int depth; };
     std::vector<NodeState> queue;
-    queue.reserve(128);
     queue.push_back({this, 0});
-    size_t head = 0;
     
-    // BFS
+    size_t head = 0;
     while (head < queue.size()) {
         const NodeState current = queue[head++];
         const ModifiableNestedOctree* currNode = current.node;
@@ -432,16 +423,8 @@ uint8_t* ModifiableNestedOctree<PointT>::serializeForR3F(const Camera& c, int ma
             continue;
         }
 
-        for (const auto& kv : currNode->pointGridMap) {
-            const PointT& p = kv.second;
-            appendBytes(p.x);
-            appendBytes(p.y);
-            appendBytes(p.z);
-            positions.push_back(p.r);
-            positions.push_back(p.g);
-            positions.push_back(p.b);
-            positions.push_back(p.a);
-        }
+        visibleNodes.push_back(currNode);
+        totalPoints += currNode->pointGridMap.size();
 
         for (int i = 0; i < 8; ++i) {
             uint32_t childIndex = currNode->children[i];
@@ -451,12 +434,42 @@ uint8_t* ModifiableNestedOctree<PointT>::serializeForR3F(const Camera& c, int ma
         }
     }
 
-    uint32_t payloadBytes = static_cast<uint32_t>(positions.size());
+
+    //std::cout << "After getting visible nodes total points: " << totalPoints << std::endl;
+
+
+    // 2. Allocate the final buffer immediately
+    const size_t bytesPerPoint = 16; // 3 floats (12 bytes) + 4 uint8 (4 bytes)
+    uint32_t payloadBytes = static_cast<uint32_t>(totalPoints * bytesPerPoint);
     uint32_t totalBytes = sizeof(uint32_t) + payloadBytes;
+    
     uint8_t* buffer = static_cast<uint8_t*>(std::malloc(totalBytes));
-    if (buffer) {
-        std::memcpy(buffer, &payloadBytes, sizeof(uint32_t));
-        std::memcpy(buffer + sizeof(uint32_t), positions.data(), payloadBytes);
+    if (!buffer) return nullptr;
+
+    // Write header
+    std::memcpy(buffer, &payloadBytes, sizeof(uint32_t));
+    
+    // 3. Second Pass: Write data directly to the buffer
+    uint8_t* writePtr = buffer + sizeof(uint32_t);
+
+    for (const auto* node : visibleNodes) {
+        for (const auto& kv : node->pointGridMap) {
+            const PointT& p = kv.second;
+            
+            // OPTION A: If your struct layout is exactly [x,y,z,r,g,b,a] with no padding:
+            // std::memcpy(writePtr, &p, 16);
+            // writePtr += 16;
+
+            // OPTION B: Safer and still extremely fast (Direct Writing)
+            *(reinterpret_cast<float*>(writePtr)) = p.x;
+            *(reinterpret_cast<float*>(writePtr + 4)) = p.y;
+            *(reinterpret_cast<float*>(writePtr + 8)) = p.z;
+            writePtr[12] = p.r;
+            writePtr[13] = p.g;
+            writePtr[14] = p.b;
+            writePtr[15] = p.a;
+            writePtr += 16;
+        }
     }
 
     return buffer;

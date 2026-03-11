@@ -27,10 +27,10 @@ BoundingBox::BoundingBox(
     const PointXYZ& maxCorner_
 ) : minCorner(minCorner_), maxCorner(maxCorner_) {
 
+    center = (minCorner_+maxCorner_)/2;
     length = (maxCorner.x - minCorner.x);
     width = (maxCorner.y - minCorner.y);
     height = (maxCorner.z - minCorner.z);
-    center = (minCorner_+maxCorner_)/2;
     inv_length = 1/(maxCorner.x - minCorner.x);
     inv_width = 1/(maxCorner.y - minCorner.y);
     inv_height = 1/(maxCorner.z - minCorner.z);

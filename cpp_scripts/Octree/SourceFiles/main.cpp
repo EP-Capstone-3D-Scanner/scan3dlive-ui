@@ -158,7 +158,7 @@ int main() {
     Camera c = {0, 1.5, 12, worldToCamera, projection, 1280, 161.0500030517578};
     
     std::vector<PointXYZRGBA> points;
-    load_ply(points, "../assets/oak_5M.ply");
+    load_ply(points, "../assets/pcl1.ply");
 
     //Get bounding box of all points
     PointXYZ minPoint = points[0];
@@ -179,17 +179,21 @@ int main() {
     uint16_t originalRootId = ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID;
     ModifiableNestedOctree<PointXYZRGBA>::expandRoot(BoundingBox(minPoint, maxPoint));
     //ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].printNode();
+    uint64_t checksum = 0;
+
     for (const auto& p : points) {
         ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].insertPoint(p);
+        checksum+=1;
     }
     ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].repairLOD(originalRootId);
     //ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].printNode();
-
-    uint64_t checksum = 0;
-    for(int i = 0; i < 300; i++) {
-        ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].serializeForR3F(c, 100, 0);
+    std::cout <<"Done"<<std::endl;
+    
+    for(int i = 0; i < 1000; i++) {
+        //ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].serializeForR3F(c, 100, 0);
     }
     std::cout << "Result: " << checksum << std::endl;
+    
     //ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].printNode();
 
     return 0;

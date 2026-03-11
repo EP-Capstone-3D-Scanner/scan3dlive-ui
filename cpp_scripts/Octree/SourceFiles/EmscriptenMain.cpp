@@ -188,12 +188,16 @@ extern "C" {
             if (p.z > maxPoint.z) maxPoint.z = p.z;
         }
         
+        std::cout << ModifiableNestedOctree<PointXYZRGBA>::POINT_COUNT << std::endl;
         uint16_t originalRootId = ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID;
         ModifiableNestedOctree<PointXYZRGBA>::expandRoot(BoundingBox(minPoint, maxPoint));
+
         for(const PointXYZRGBA& p : points) {
             ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].insertPoint(p);
         }
         ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].repairLOD(originalRootId);
+        std::cout << ModifiableNestedOctree<PointXYZRGBA>::POINT_COUNT << std::endl;
+
     }
 
     EMSCRIPTEN_KEEPALIVE
