@@ -1,18 +1,18 @@
 import * as THREE from 'three'
 import { useEffect, useState, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import useWebSocketClient from './Websocket';
 import OctreeWorker from './octree.worker.js?worker' 
 
 
 
-function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , scannerReconnecting , position , rotation , url , octreeMaxLOD , setSidebarDisplay }) {
+function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , position , rotation , url , octreeMaxLOD , setSidebarDisplay }) {
   const { invalidate } = useThree()
   const [isLoaded, setIsLoaded] = useState(false)
   const geometryRef = useRef(new THREE.BufferGeometry())
   const positionAttrRef = useRef(null)
   const colorAttrRef = useRef(null)
   const pointsInsertedRef = useRef(false);
+  const sharedUint8ViewRef = useRef(null);
   
   useEffect(() => {
       invalidate();
@@ -27,13 +27,13 @@ function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , scannerRec
         
         else if (type === 'INIT_DONE') {
           const { sharedBuffer } = payload;
+          sharedUint8ViewRef.current = new Uint8Array(sharedBuffer);
           const positionBuffer = new THREE.InterleavedBuffer(new Float32Array(sharedBuffer), 4);
           const colorBuffer = new THREE.InterleavedBuffer(new Uint8Array(sharedBuffer), 16);
           positionAttrRef.current = new THREE.InterleavedBufferAttribute(positionBuffer, 3, 0);
           colorAttrRef.current = new THREE.InterleavedBufferAttribute(colorBuffer, 4, 12, true);      
           console.log('done')
           isWorkerBusy.current = false;
-          setIsLoaded(true);
         }
 
         else if (type === 'LOAD_DONE') {
@@ -48,6 +48,7 @@ function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , scannerRec
           positionAttrRef.current.data.needsUpdate = true;
           colorAttrRef.current.data.needsUpdate = true;
           isWorkerBusy.current = false;  
+          setIsLoaded(true);
         }
 
         else if (type == 'INSERT_DONE') {
@@ -57,12 +58,22 @@ function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , scannerRec
             positionAttrRef.current.data.setUsage(THREE.DynamicDrawUsage);
             colorAttrRef.current.data.setUsage(THREE.DynamicDrawUsage);      
             pointsInsertedRef.current = true;
+            setIsLoaded(true)
           }
           isWorkerBusy.current = false; 
-          // Send an ACK back to the server requesting the next batch
+          // Send an ACK back to the server requesting the points to insert
           if (websocketRef.current && websocketRef.current.readyState === WebSocket.OPEN) {
               websocketRef.current.send(JSON.stringify({ type: 'ACK' }));
           }
+        }
+
+        else if (type === 'CLEAR_DONE') {
+          console.log('Octree has been successfully cleared.')
+          isWorkerBusy.current = false;
+          pointsInsertedRef.current = false;
+          positionAttrRef.current.data.needsUpdate = true;
+          colorAttrRef.current.data.needsUpdate = true;  
+          setIsLoaded(false);
         }
 
         else if (type === 'UPDATE_DONE') {
@@ -75,13 +86,47 @@ function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , scannerRec
         else if (type === 'NO_UPDATE') {
           isWorkerBusy.current = false;
         }
+
+        else if (type === 'SAVE_DONE') {
+            const fileData = payload; // This is now the actual Uint8Array containing the bytes
+
+            if (!fileData || fileData.length === 0) {
+                console.error("Worker sent empty file data!");
+                return;
+            }
+
+            // Pass the data directly into the Blob
+            const blob = new Blob([fileData], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = "exported_pointcloud.ply"; 
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            URL.revokeObjectURL(url);
+            
+            console.log(`Download triggered for ${fileData.length} bytes.`);
+            isWorkerBusy.current = false;
+        }
       }
     return () => {octreeWorkerRef.current.terminate()}
   }, [url])
 
 
-  useFrame((state) => {
+  const MAX_HZ = 30
+  const INTERVAL = 1 / MAX_HZ
+  const acc = useRef(0)
+  useFrame((state, delta) => {
+    acc.current += delta
+    if (acc.current < INTERVAL) return
+    acc.current -= INTERVAL
     if (!isLoaded) return;
+    
     isWorkerBusy.current = true;
     
     const cameraData = {
@@ -96,7 +141,6 @@ function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , scannerRec
       maxLOD: octreeMaxLOD
     };
     
-    // 4. No need to pass a buffer back, just send the camera data
     octreeWorkerRef.current.postMessage({
       type: 'UPDATE',
       payload: cameraData
@@ -107,7 +151,7 @@ function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , scannerRec
   return (
     <group position={position} rotation={rotation}>
       <points geometry={geometryRef.current} dispose={null} frustumCulled={false}>
-        <pointsMaterial size={0.03} sizeAttenuation vertexColors={true} />
+        <pointsMaterial size={0.02} sizeAttenuation vertexColors={true} />
       </points>
     </group>
   )

@@ -25,18 +25,25 @@ const Toolbar = ({sidebarDisplay, setSidebarDisplay}) => {
         invalidateCanvas()
     }
 
+    const handlePointLabelButtonClick = (e) => {
+        const value = e.target.value;
+        setSidebarDisplay(prev=>({...prev, 'pointLabelType':value}))
+    }
+
     return (
-        <div id="Toolbar" className="d-flex ps-2 flex-row align-items-center">
+        <div id="Toolbar" className="d-flex ps-2 flex-row align-items-center bg-dark">
             <ToolbarButton onClick={handleClipButtonClick} icon="cube-icon.svg" title="Volume Selection"></ToolbarButton>
             <ToolbarButton onClick={handleZoomInButtonClick} icon="zoom-in-icon.svg" title="Zoom In"></ToolbarButton>
             <ToolbarButton onClick={handleZoomOutButtonClick} icon="zoom-out-icon.svg" title="Zoom Out"></ToolbarButton>
             <ToolbarButton onClick={setSidebarDisplay} icon="reply-arrow-icon.svg" title="Undo"></ToolbarButton>
             <ToolbarButton onClick={setSidebarDisplay} icon="forward-arrow-icon.svg" title="Redo"></ToolbarButton>
             <ToolbarButton onClick={setSidebarDisplay} icon="recycle-bin-icon.svg" title="Delete"></ToolbarButton>
-            <Form.Select 
+            <Form.Select
+                id="PointLabelSelect" 
                 className="bg-dark text-light ms-2" 
-                style={{ width: '10em', padding: '0.1em 0.6em' }}
-                value=""
+                style={{ width: '10em', padding: '0.1em 0.6em'}}
+                defaultValue=""
+                onChange={handlePointLabelButtonClick}
                 size="sm"
             >
                 <option disabled hidden value="">Select Option</option>

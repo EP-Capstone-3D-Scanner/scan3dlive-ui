@@ -16,7 +16,8 @@ function App() {
     'selectedVolumeNew':false, // is te volume in update menu new?
     'scannerOnline':false,
     'scannerReconnecting':0, // trigger for recconet. need to give better name
-    'show':false
+    'pointLabelType':'',
+    'show':false // Need to rename, show the sidebar or not?
   });
   
   const [displaySettings, setDisplaySettings] = useState({
@@ -26,6 +27,7 @@ function App() {
     'octreeMaxLOD':1,
     'backgroundColor':'#000000',
     'backgroundVisible':false,
+    'visibleModal': ''
   })
   
   const [volumeSelections, setVolumeSelections] = useState({});
@@ -33,6 +35,7 @@ function App() {
   const octreeWorkerRef = useRef(null)
   const isWorkerBusy = useRef(true)
   const websocketRef = useWebSocketClient({url: "wss://localhost:8001", scannerReconnecting : sidebarDisplay['scannerReconnecting'] , workerRef : octreeWorkerRef, isWorkerBusy:isWorkerBusy, setSidebarDisplay: setSidebarDisplay});
+  //const websocketRef = useWebSocketClient({url: "wss://10.6.95.47:8001", scannerReconnecting : sidebarDisplay['scannerReconnecting'] , workerRef : octreeWorkerRef, isWorkerBusy:isWorkerBusy, setSidebarDisplay: setSidebarDisplay});
   
   
   //useWebSocketClient({url: "ws://192.168.2.15:8001", setSidebarDisplay: setSidebarDisplay});
@@ -85,8 +88,13 @@ function App() {
         >
         </Sidebar>
       </div>
-      <ScannerConnectionStatusToast></ScannerConnectionStatusToast>
-      <Footer></Footer>
+      
+      <Footer 
+        displaySettings={displaySettings}
+        setDisplaySettings={setDisplaySettings}
+        scannerOnline={sidebarDisplay['scannerOnline']}
+      >
+      </Footer>
     </div>
   )
 }

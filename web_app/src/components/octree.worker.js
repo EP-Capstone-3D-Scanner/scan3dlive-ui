@@ -1,21 +1,19 @@
-//emcc -sENVIRONMENT=web -sMALLOC=emmalloc -O3 -flto SourceFiles/EmscriptenMain.cpp SourceFiles/tinyply.cpp SourceFiles/BoundingBox.cpp SourceFiles/Camera.cpp SourceFiles/Points.cpp -I HeaderFiles -o OctreeModuleProfiledTest.js -sEXPORT_ES6 -sEXPORTED_FUNCTIONS=_malloc,_free -sEXPORTED_RUNTIME_METHODS=HEAPF32,HEAPU32,HEAPU8 -sINITIAL_MEMORY=4096MB -sALLOW_MEMORY_GROWTH=0 -sASSERTIONS=1
-import OctreeManager from '../modules/OctreeModuleProfiledTest.js';
-
+import OctreeManager from '../modules/OctreeModuleClearTest.js';
+// emcc -sENVIRONMENT=web -sMALLOC=emmalloc -O3 -flto -msimd128 -msse SourceFiles/EmscriptenMain.cpp SourceFiles/tinyply.cpp SourceFiles/BoundingBox.cpp SourceFiles/Camera.cpp SourceFiles/Points.cpp -I HeaderFiles -o OctreeModuleClearTest.js -sEXPORT_ES6 -sEXPORTED_FUNCTIONS=_malloc,_free -sEXPORTED_RUNTIME_METHODS=HEAPF32,HEAPU32,HEAPU8 -sINITIAL_MEMORY=2048MB -sALLOW_MEMORY_GROWTH=1 -sASSERTIONS=1
 const BYTES_PER_POINT = 16;
 const FLOATS_PER_POINT = 4;
 let OctreeHelper = null;
 
 let lastVertexCount = 0;
 let previousMaxLOD = -1;
-let maxPointsCapacity = 10000000;
+let maxPointsCapacity = 20000000;
 const byteSize = maxPointsCapacity * BYTES_PER_POINT;
 let sharedBuffer;
 let sharedFloat32View;
+let tm = 0;
 
-// 1. Initialize Wasm
-OctreeManager({
-  print: console.log,
-}).then((module) => {
+OctreeManager({print: console.log})
+.then((module) => {
   OctreeHelper = module;
   console.log('ran readied')
   self.postMessage({ type: 'READY' });
@@ -38,7 +36,6 @@ self.onmessage = async (e) => {
     }
   }
 
-  
   else if (type === 'LOAD') {
     try {
       const arrayBuffer = await payload.file.arrayBuffer();
@@ -55,25 +52,32 @@ self.onmessage = async (e) => {
     }
   }
   
-
   else if (type == 'INSERT') {
+    const start = performance.now()
     const pointCount = payload.byteLength/BYTES_PER_POINT;
     const dataPtr = OctreeHelper._malloc(payload.byteLength);
     OctreeHelper.HEAPU8.set(new Uint8Array(payload), dataPtr);
-    const start = performance.now()
     OctreeHelper._insertPoints(dataPtr, pointCount)
-    const end = performance.now()
-    console.log(`Octree Insertion took ${end-start} milliseconds`)
     OctreeHelper._free(dataPtr);
+    const end = performance.now()
+    tm += (end - start)
+    //console.log(`Octree Insertion took ${end-start} milliseconds`)
+    console.log(`Time elapsed ${tm} milliseconds`)
     
     self.postMessage({
       type: 'INSERT_DONE',
     });
   }
 
+  else if (type == 'CLEAR') {
+    OctreeHelper._clearOctree()
+    self.postMessage({
+      type: 'CLEAR_DONE',
+    });
+  }
+
   else if (type === 'UPDATE') {
     if (!OctreeHelper || !sharedFloat32View) return; // Ensure view exists
-
     const { pos, vmi, pm, aspectRatio, maxLOD } = payload; 
     OctreeHelper._updateOctreeCamera(
       pos.x, pos.y, pos.z,
@@ -112,5 +116,16 @@ self.onmessage = async (e) => {
       self.postMessage({ type: 'NO_UPDATE' });
     }
     OctreeHelper._free(dataNodePtr);
+  }
+
+  else if (type === 'SAVE') {
+      if (!OctreeHelper) return;
+      const dataNodePtr = OctreeHelper._getOctreeBinaryPLY();
+      const dataBytes = OctreeHelper.HEAPU32[dataNodePtr >> 2];
+      const startIndex = dataNodePtr + 4;
+      const fileData = new Uint8Array(dataBytes);
+      fileData.set(OctreeHelper.HEAPU8.subarray(startIndex, startIndex + dataBytes));
+      self.postMessage({ type: 'SAVE_DONE', payload: fileData });
+      OctreeHelper._free(dataNodePtr);
   }
 };

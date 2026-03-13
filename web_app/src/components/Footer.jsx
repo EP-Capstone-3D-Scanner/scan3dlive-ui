@@ -1,12 +1,16 @@
-import { useState } from 'react'
-import { DetailsModal } from './Modals'
+import { useState , useEffect } from 'react'
+import { DetailsModal , ScannerConnectionStatusToast } from './Modals'
 import Button from 'react-bootstrap/Button';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Tooltip from 'react-bootstrap/Tooltip';
 
-const Footer = ({}) => {
-    const [visibleModal, setVisibleModal] = useState('none');
+const Footer = ({displaySettings, setDisplaySettings, scannerOnline}) => {
+    const [showScannerConnectionToast, setShowScannerConnectionToast] = useState(false);
 
+    useEffect(()=>{
+        setShowScannerConnectionToast(true)
+    }, [scannerOnline])
+    
     return (
         <>
             <div id="Footer" className="d-flex flex-row bg-dark">
@@ -71,17 +75,23 @@ const Footer = ({}) => {
                         style={{'fontSize':'1em'}} 
                         className="d-flex flex-column justify-content-center h-100 footer-button" 
                         variant="dark"
-                        onClick = {() => setVisibleModal('details')}
+                        onClick = {() => setDisplaySettings(prev => ({...prev, 'visibleModal':'details'}))}
                     >
                             ⓘ
                     </Button>
                 </OverlayTrigger>
 
             </div>
-
+            
+            <ScannerConnectionStatusToast
+                showScannerConnectionToast={showScannerConnectionToast}
+                setShowScannerConnectionToast={setShowScannerConnectionToast}
+            >
+            </ScannerConnectionStatusToast>
+            
             <DetailsModal
-                visibleModal={visibleModal}
-                setVisibleModal={setVisibleModal}
+                displaySettings={displaySettings}
+                setDisplaySettings={setDisplaySettings}
             >
             </DetailsModal>
         </>

@@ -23,11 +23,23 @@ const Navigator = ({ websocketRef , octreeWorkerRef, displaySettings, setDisplay
     };
 
     const loadUserPLYFile = (e) => {
-        e.stopPropagation()
         const file = e.target.files[0];
         if(file) {
             octreeWorkerRef.current.postMessage({ type: 'LOAD', payload: { file } })
         }
+        e.target.value = null;
+    }
+
+    const saveUserPLYFile = (e) => {
+        octreeWorkerRef.current.postMessage({ type: 'SAVE', payload: {} })
+    }
+
+    const handleInfoButtonClick = () => {
+        setDisplaySettings(prev=>({...prev, 'visibleModal':'details'}))
+    }
+
+    const handleCloseButtonClick = (e) => {
+        octreeWorkerRef.current.postMessage({ type: 'CLEAR', payload: {} })
     }
 
     const handleGridSelectCheckbox = () => {
@@ -93,12 +105,12 @@ const Navigator = ({ websocketRef , octreeWorkerRef, displaySettings, setDisplay
                         </NavDropdown.Item>
                         <NavDropdown.Divider/>
                         <NavDropdown.Item>Save</NavDropdown.Item>
-                        <NavDropdown.Item>Save As...</NavDropdown.Item>
+                        <NavDropdown.Item onClick={saveUserPLYFile}>Save As...</NavDropdown.Item>
                         <NavDropdown.Divider/>
                         <NavDropdown.Item>Settings</NavDropdown.Item>
-                        <NavDropdown.Item>Info</NavDropdown.Item>
+                        <NavDropdown.Item onClick={handleInfoButtonClick}>Info</NavDropdown.Item>
                         <NavDropdown.Divider/>
-                        <NavDropdown.Item>Close</NavDropdown.Item>
+                        <NavDropdown.Item onClick={handleCloseButtonClick}>Close</NavDropdown.Item>
                     </NavDropdown>
 
                     <NavDropdown title="Edit" className="h-100 d-flex align-items-center">

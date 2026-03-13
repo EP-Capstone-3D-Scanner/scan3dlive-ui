@@ -7,6 +7,10 @@ function useWebsocketClient({url, scannerReconnecting , workerRef, isWorkerBusy,
         ws.current = new WebSocket(url);
         ws.current.binaryType = "arraybuffer";
         
+        ws.current.onerror = (error) => {
+            console.log('Websocket failed to connect')
+        }
+
         ws.current.onopen = () => {
             console.log("WebSocket connection established");
             setSidebarDisplay(prev => ({...prev, scannerOnline: true}));
