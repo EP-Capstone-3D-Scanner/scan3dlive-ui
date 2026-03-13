@@ -4,7 +4,7 @@ import Form from 'react-bootstrap/Form';
 
 const Toolbar = ({sidebarDisplay, setSidebarDisplay}) => {
     const handleClipButtonClick = () => {
-        setSidebarDisplay({'page':'EditVolumeSelectionsMenu', 'show':true});
+        setSidebarDisplay(prev=>({...prev, 'page':'EditVolumeSelectionsMenu', 'show':true}));
     }
 
     const handleZoomInButtonClick = () => {

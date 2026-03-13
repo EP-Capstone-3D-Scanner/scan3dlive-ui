@@ -6,7 +6,7 @@ import Tooltip from 'react-bootstrap/Tooltip';
 
 const Footer = ({displaySettings, setDisplaySettings, scannerOnline}) => {
     const [showScannerConnectionToast, setShowScannerConnectionToast] = useState(false);
-
+    console.log('rerendered')
     useEffect(()=>{
         setShowScannerConnectionToast(true)
     }, [scannerOnline])
