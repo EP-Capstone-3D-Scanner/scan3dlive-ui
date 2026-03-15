@@ -10,7 +10,7 @@ import { invalidateCanvas } from './Canvas3D'
 const Navigator = ({ websocketRef , octreeWorkerRef, displaySettings, setDisplaySettings, sidebarDisplay, setSidebarDisplay}) => {
 
     const handleFormatButtonClick = () => {
-        setSidebarDisplay(prev => ({...prev, page:'EditViewSelectionsMenu', show:true}));
+        setSidebarDisplay(prev => ({...prev, page:'EditViewSelectionsMenu', show:true, 'showDeletionSelection':false}));
     }
 
     const toggleFullScreen = () => {
@@ -34,6 +34,10 @@ const Navigator = ({ websocketRef , octreeWorkerRef, displaySettings, setDisplay
         octreeWorkerRef.current.postMessage({ type: 'SAVE', payload: {} })
     }
 
+    const handleSettingsButtonClick = () => {
+        setDisplaySettings(prev=>({...prev, 'visibleModal':'settings'}))
+    }
+
     const handleInfoButtonClick = () => {
         setDisplaySettings(prev=>({...prev, 'visibleModal':'details'}))
     }
@@ -45,6 +49,12 @@ const Navigator = ({ websocketRef , octreeWorkerRef, displaySettings, setDisplay
     const handleGridSelectCheckbox = () => {
         const checked = displaySettings['gridVisible']
         setDisplaySettings({...displaySettings, 'gridVisible':!checked})
+        invalidateCanvas()
+    }
+
+    const handleLabelsSelectCheckbox = () => {
+        const checked = displaySettings['showLabels']
+        setDisplaySettings({...displaySettings, 'showLabels':!checked})
         invalidateCanvas()
     }
 
@@ -107,7 +117,7 @@ const Navigator = ({ websocketRef , octreeWorkerRef, displaySettings, setDisplay
                         <NavDropdown.Item>Save</NavDropdown.Item>
                         <NavDropdown.Item onClick={saveUserPLYFile}>Save As...</NavDropdown.Item>
                         <NavDropdown.Divider/>
-                        <NavDropdown.Item>Settings</NavDropdown.Item>
+                        <NavDropdown.Item onClick={handleSettingsButtonClick}>Settings</NavDropdown.Item>
                         <NavDropdown.Item onClick={handleInfoButtonClick}>Info</NavDropdown.Item>
                         <NavDropdown.Divider/>
                         <NavDropdown.Item onClick={handleCloseButtonClick}>Close</NavDropdown.Item>
@@ -129,7 +139,7 @@ const Navigator = ({ websocketRef , octreeWorkerRef, displaySettings, setDisplay
                         <NavDropdown.Divider/>
                         <NavDropdown.Item onClick={handleGridSelectCheckbox}>Grid</NavDropdown.Item>
                         <NavDropdown.Divider/>
-                        <NavDropdown.Item>Labels</NavDropdown.Item>
+                        <NavDropdown.Item onClick={handleLabelsSelectCheckbox}>Labels</NavDropdown.Item>
                         <NavDropdown.Item onClick={toggleFullScreen}>Fullscreen</NavDropdown.Item>
                         <NavDropdown.Divider/>
                         <NavDropdown.Item>Appearance</NavDropdown.Item>

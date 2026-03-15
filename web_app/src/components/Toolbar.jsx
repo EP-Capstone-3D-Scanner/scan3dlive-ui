@@ -3,8 +3,12 @@ import { invalidateCanvas, getCamera } from './Canvas3D'
 import Form from 'react-bootstrap/Form';
 
 const Toolbar = ({sidebarDisplay, setSidebarDisplay}) => {
-    const handleClipButtonClick = () => {
-        setSidebarDisplay(prev=>({...prev, 'page':'EditVolumeSelectionsMenu', 'show':true}));
+    const handleVolumeSelectionButtonClick = () => {
+        setSidebarDisplay(prev=>({...prev, 'page':'EditVolumeSelectionsMenu', 'show':true, 'showDeletionSelection':false}));
+    }
+
+    const handleDeleteButtonClick = () => {
+        setSidebarDisplay(prev=>({...prev, 'page':'DeletionSelectionMenu', 'show':true, 'showDeletionSelection':true}));
     }
 
     const handleZoomInButtonClick = () => {
@@ -32,12 +36,12 @@ const Toolbar = ({sidebarDisplay, setSidebarDisplay}) => {
 
     return (
         <div id="Toolbar" className="d-flex ps-2 flex-row align-items-center bg-dark">
-            <ToolbarButton onClick={handleClipButtonClick} icon="cube-icon.svg" title="Volume Selection"></ToolbarButton>
+            <ToolbarButton onClick={handleVolumeSelectionButtonClick} icon="cube-icon.svg" title="Volume Selection"></ToolbarButton>
             <ToolbarButton onClick={handleZoomInButtonClick} icon="zoom-in-icon.svg" title="Zoom In"></ToolbarButton>
             <ToolbarButton onClick={handleZoomOutButtonClick} icon="zoom-out-icon.svg" title="Zoom Out"></ToolbarButton>
             <ToolbarButton onClick={setSidebarDisplay} icon="reply-arrow-icon.svg" title="Undo"></ToolbarButton>
             <ToolbarButton onClick={setSidebarDisplay} icon="forward-arrow-icon.svg" title="Redo"></ToolbarButton>
-            <ToolbarButton onClick={setSidebarDisplay} icon="recycle-bin-icon.svg" title="Delete"></ToolbarButton>
+            <ToolbarButton onClick={handleDeleteButtonClick} icon="recycle-bin-icon.svg" title="Delete"></ToolbarButton>
             <Form.Select
                 id="PointLabelSelect" 
                 className="bg-dark text-light ms-2" 
@@ -67,7 +71,7 @@ const Toolbar = ({sidebarDisplay, setSidebarDisplay}) => {
                 className="Sidebar-toggle-button ms-auto h-100" 
                 onClick={()=>{
                     const showing = sidebarDisplay['show'];
-                    setSidebarDisplay({...sidebarDisplay, 'show':!showing});
+                    setSidebarDisplay(prev=>({...prev, 'show':!showing}));
                     }}>
                 ◥
             </button>

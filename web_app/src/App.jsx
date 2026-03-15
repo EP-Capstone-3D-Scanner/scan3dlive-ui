@@ -1,11 +1,10 @@
-import { useState , useRef, useEffect } from 'react'
+import { useState , useRef } from 'react'
 import Canvas3D from './components/Canvas3D';
 import Navigator from './components/Navigator';
 import Sidebar from './components/Sidebar';
 import Footer from './components/Footer'
 import Toolbar from './components/Toolbar'
 import useWebSocketClient from './components/Websocket';
-import { ScannerConnectionStatusToast } from './components/Modals';
 import './App.css';
 
 function App() {
@@ -23,22 +22,26 @@ function App() {
   const [displaySettings, setDisplaySettings] = useState({
     'gridVisible':true,
     'skyboxVisible':false,
+    'showLabels':true,
     'skyboxPreset':'city',
     'octreeMaxLOD':1,
     'backgroundColor':'#000000',
     'backgroundVisible':false,
-    'visibleModal': ''
+    'visibleModal': '',
+    'projectName':'Untitled-0',
+    'projectAuthor':'', 
+    'description':''
   })
   
   const [volumeSelections, setVolumeSelections] = useState({});
-  
+  const [deletionSelection, setDeletionSelection] = useState({'position':[0, 0, 0], 'size':[1, 1, 1]})
+
   const octreeWorkerRef = useRef(null)
   const isWorkerBusy = useRef(true)
-  const websocketRef = useWebSocketClient({url: "wss://localhost:8001", scannerReconnecting : sidebarDisplay['scannerReconnecting'] , workerRef : octreeWorkerRef, isWorkerBusy:isWorkerBusy, setSidebarDisplay: setSidebarDisplay});
+  //const websocketRef = useWebSocketClient({url: "wss://localhost:8001", scannerReconnecting : sidebarDisplay['scannerReconnecting'] , workerRef : octreeWorkerRef, isWorkerBusy:isWorkerBusy, setSidebarDisplay: setSidebarDisplay});
   //const websocketRef = useWebSocketClient({url: "wss://10.6.95.47:8001", scannerReconnecting : sidebarDisplay['scannerReconnecting'] , workerRef : octreeWorkerRef, isWorkerBusy:isWorkerBusy, setSidebarDisplay: setSidebarDisplay});
-  
-  
-  //useWebSocketClient({url: "ws://192.168.2.15:8001", setSidebarDisplay: setSidebarDisplay});
+  const websocketRef = useWebSocketClient({url: "wss://192.168.2.15:8001", scannerReconnecting : sidebarDisplay['scannerReconnecting'] , workerRef : octreeWorkerRef, isWorkerBusy:isWorkerBusy, setSidebarDisplay: setSidebarDisplay});
+
   return (
     <div 
       id="web_app" 
@@ -68,10 +71,12 @@ function App() {
         <Canvas3D 
           displaySettings={displaySettings}
           setDisplaySettings={setDisplaySettings}
+          sidebarDisplay={sidebarDisplay}
           setSidebarDisplay={setSidebarDisplay}
-          scannerReconnecting={sidebarDisplay['scannerReconnecting']}
           volumeSelections={volumeSelections}
           setVolumeSelections={setVolumeSelections}
+          deletionSelection={deletionSelection}
+          setDeletionSelection={setDeletionSelection}
           octreeWorkerRef={octreeWorkerRef}
           websocketRef={websocketRef}
           isWorkerBusy={isWorkerBusy}
@@ -83,8 +88,12 @@ function App() {
           setSidebarDisplay={setSidebarDisplay}
           volumeSelections={volumeSelections}
           setVolumeSelections={setVolumeSelections}
+          deletionSelection={deletionSelection}
+          setDeletionSelection={setDeletionSelection}
           displaySettings={displaySettings}
           setDisplaySettings={setDisplaySettings}
+          octreeWorkerRef={octreeWorkerRef}
+          isWorkerBusy={isWorkerBusy}
         >
         </Sidebar>
       </div>

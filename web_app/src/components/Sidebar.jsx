@@ -10,7 +10,6 @@ import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Form from 'react-bootstrap/Form';
 import { invalidateCanvas } from './Canvas3D'
 import { useEffect , useState, useRef} from 'react';
-import { TextureUtils } from 'three';
 
 function EditVolumeSelectionsMenu({sidebarDisplay, setSidebarDisplay, volumeSelections, setVolumeSelections, closeSidebar}) {
         
@@ -275,12 +274,141 @@ function UpdateVolumeSelectionMenu({sidebarDisplay, setSidebarDisplay, volumeSel
     )
 }
 
+function DeletionSelectionMenu({sidebarDisplay, setSidebarDisplay, deletionSelection, setDeletionSelection, octreeWorkerRef, isWorkerBusy}) {
+
+    const handleCloseDeletionButton = () => {
+        setSidebarDisplay({...sidebarDisplay, show:false})
+        invalidateCanvas()
+    }
+
+    const handleDeleteSelectionButton = () => {
+        setSidebarDisplay({...sidebarDisplay, show:false})
+        invalidateCanvas()
+        if(octreeWorkerRef) {
+            isWorkerBusy.current = true;
+            octreeWorkerRef.current.postMessage({type: 'DELETE', payload: {...deletionSelection}})
+        }
+    }
+
+    const handlePositionChange = (axisIndex, newValue) => {
+        const val = parseFloat(newValue)||newValue; 
+
+        setDeletionSelection(prev => ({
+            ...prev,
+            position: position.map((coord, i) => 
+                    i === axisIndex ? val : coord
+            )
+        }));
+    };
+
+    const handleSizeChange = (axisIndex, newValue) => {
+        let val = parseFloat(newValue)||newValue; 
+        if(parseFloat(val) && val < 0) {
+            val = 0;
+        }
+        setDeletionSelection(prev => ({
+            ...prev,
+            size: size.map((coord, i) => 
+                i === axisIndex ? val : coord
+            )
+        }));
+    };
+
+    const handleBlur = (property, axisIndex, newValue) => {
+        let val = parseFloat(newValue)||0; 
+        
+        if(property == 'size') {
+            val = val>=0 && val
+        }
+
+        setDeletionSelection(prev => ({
+            ...prev,
+            property: prev.position.map((coord, i) => 
+                i === axisIndex ? val : coord
+            )
+        }));
+    };
+
+    return (
+        <>
+            <div className="pb-2">Delete Points</div>
+
+            <Form style={{ fontSize: '0.8em', 'overflowX':'hidden'}} className="d-flex flex-column p-3 flex-grow-1">
+
+                <Form.Group className="mb-2 d-flex flex-column border-top p-2" style={{'fontSize':'0.9em'}}>
+                    <Form.Label className="mb-2 align-self-start"><b>Position: </b></Form.Label>
+                    {['x', 'y', 'z'].map((axis, index) => (
+                        <div key={axis} className="d-flex align-items-center mb-2">
+                            <Form.Label htmlFor={`position-${axis}`} style={{ width: '2.5em', marginBottom: 0 }}>
+                                {axis}:
+                            </Form.Label>
+                            <div className="flex-grow-1">
+                                <Form.Control 
+                                    id={`position-${axis}`}
+                                    size="sm" 
+                                    type="text" 
+                                    style={{ height: '22px', fontSize: '0.9em' }}
+                                    value={deletionSelection.position[index]} 
+                                    className="py-0" 
+                                    onChange={(e) => handlePositionChange(index, e.target.value)} 
+                                    onBlur={(e) => handleBlur('position', index, e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    ))}
+                </Form.Group>
+
+                <Form.Group className="mb-2 d-flex flex-column border-top p-2" style={{'fontSize':'0.9em'}}>
+                    <Form.Label className="mb-2 align-self-start"><b>Size: </b></Form.Label>
+                    
+                    {['x(l)', 'y(w)', 'z(h)'].map((axis, index) => (
+                        <div key={axis} className="d-flex align-items-center mb-2">
+                            <Form.Label htmlFor={`position-${axis}`} style={{ width: '2.5em', marginBottom: 0 }}>
+                                {axis}:
+                            </Form.Label>
+                            <div className="flex-grow-1">
+                                <Form.Control 
+                                    id={`position-${axis}`}
+                                    size="sm" 
+                                    type="text" 
+                                    style={{ height: '22px', fontSize: '0.9em' }}
+                                    value={deletionSelection.size[index]} 
+                                    className="py-0" 
+                                    onChange={(e) => handleSizeChange(index, e.target.value)} 
+                                    onBlur={(e) => handleBlur('size', index, e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    ))}
+                </Form.Group>             
+            </Form>
+
+            <div className="d-flex flex-column gap-2 mx-3 my-2">
+                <Button onClick={handleDeleteSelectionButton} variant="primary" size="sm">
+                    Delete
+                </Button>
+                <Button onClick={handleCloseDeletionButton} variant="danger" size="sm">
+                    Cancel
+                </Button>
+            </div>
+        </>
+    )
+}
+
 function EditViewSelectionsMenu({displaySettings, setDisplaySettings, closeSidebar}) {
     
     // Terrible coding lol. Half of these functions can be combined into one.
     const handleGridSelectCheckbox = () => {
         const checked = displaySettings['gridVisible']
         setDisplaySettings({...displaySettings, 'gridVisible':!checked})
+        invalidateCanvas()
+    }
+
+    const handleLabelsSelectCheckbox = () => {
+        const checked = displaySettings['showLabels']
+        console.log(checked)
+        setDisplaySettings({...displaySettings, 'showLabels':!checked})
+        console.log('ih')
         invalidateCanvas()
     }
 
@@ -382,9 +510,11 @@ function EditViewSelectionsMenu({displaySettings, setDisplaySettings, closeSideb
 
                     <Form.Check
                         className="d-flex flex-row gap-2 my-1"
-                        label="Hide Annotations"
+                        label="Hide Labels"
                         name="annotationSelectCheckbox"
                         type="checkbox"
+                        checked={!displaySettings['showLabels']}
+                        onChange={handleLabelsSelectCheckbox}
                     />
 
                     <div className="d-flex flex-row gap-3 my-1">
@@ -414,7 +544,7 @@ function EditViewSelectionsMenu({displaySettings, setDisplaySettings, closeSideb
     )
 }
 
-function Sidebar({sidebarDisplay, setSidebarDisplay, volumeSelections, setVolumeSelections, displaySettings, setDisplaySettings}) {
+function Sidebar({sidebarDisplay, setSidebarDisplay, volumeSelections, setVolumeSelections, deletionSelection, setDeletionSelection, displaySettings, setDisplaySettings, octreeWorkerRef, isWorkerBusy}) {
     const closeSidebar = () => {
         setSidebarDisplay({...sidebarDisplay, 'show':false});
     }
@@ -454,6 +584,18 @@ function Sidebar({sidebarDisplay, setSidebarDisplay, volumeSelections, setVolume
                     setVolumeSelections={setVolumeSelections}
                 >    
                 </UpdateVolumeSelectionMenu>
+            : null}
+
+            {sidebarDisplay['page'] == 'DeletionSelectionMenu' ?             
+                <DeletionSelectionMenu
+                    sidebarDisplay={sidebarDisplay}
+                    setSidebarDisplay={setSidebarDisplay}
+                    deletionSelection={deletionSelection}
+                    setDeletionSelection={setDeletionSelection}
+                    octreeWorkerRef={octreeWorkerRef}
+                    isWorkerBusy={isWorkerBusy}
+                >    
+                </DeletionSelectionMenu>
             : null}
 
         </div>

@@ -53,13 +53,12 @@ const BackgroundManager = ({ skyboxVisible, skyboxPreset, backgroundVisible, bac
   return null;
 };
 
-function Canvas3D({ websocketRef , octreeWorkerRef , scannerReconnecting , volumeSelections , setVolumeSelections , displaySettings , setSidebarDisplay , isWorkerBusy , setDisplaySettings }) {
+function Canvas3D({ websocketRef , octreeWorkerRef , volumeSelections , setVolumeSelections , deletionSelection, setDeletionSelection, displaySettings , sidebarDisplay, setSidebarDisplay , isWorkerBusy , setDisplaySettings }) {
   const [orbitEnabled, setOrbitEnabled] = useState(true);
 
   return (
     <div id="Canvas3D" className="w-100">
       <Canvas
-        
         onCreated={(state) => {
           invalidateRef = state.invalidate;
           cameraRef = state.camera;
@@ -77,12 +76,27 @@ function Canvas3D({ websocketRef , octreeWorkerRef , scannerReconnecting , volum
         {Object.keys(volumeSelections).map(volumeId => (
           <VolumeSelectionBox
             key = {volumeId}
+            isDeletion={false}
             volumeId = {volumeId}
             volumeSelections={volumeSelections} 
             setVolumeSelections={setVolumeSelections}
             setOrbitControlsEnabled={setOrbitEnabled} 
+            showLabel={displaySettings['showLabels']}
+            focusColor="#ffcc00" 
+            color="#0088ff"
           />
         ))}
+
+        {(sidebarDisplay['page'] == 'DeletionSelectionMenu') && sidebarDisplay['show'] ? 
+          <VolumeSelectionBox
+            isDeletion={true}
+            deletionSelection={deletionSelection}
+            setDeletionSelection={setDeletionSelection}
+            setOrbitControlsEnabled={setOrbitEnabled} 
+            focusColor="#ff0000" 
+            color="#fd0000"
+          /> : null
+        }
 
         <OrbitControls makeDefault enabled={orbitEnabled} />
         <ambientLight intensity={1} />
@@ -95,7 +109,7 @@ function Canvas3D({ websocketRef , octreeWorkerRef , scannerReconnecting , volum
           setSidebarDisplay={setSidebarDisplay}
           octreeWorkerRef={octreeWorkerRef}
           websocketRef={websocketRef}
-          scannerReconnecting={scannerReconnecting}
+          scannerReconnecting={sidebarDisplay['scannerReconnecting']}
           isWorkerBusy={isWorkerBusy}
         />
       </Canvas>

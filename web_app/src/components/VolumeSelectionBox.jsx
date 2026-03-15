@@ -7,13 +7,19 @@ export const VolumeSelectionBox = ({
   volumeId,
   volumeSelections,
   setVolumeSelections,
-  setOrbitControlsEnabled 
+  setOrbitControlsEnabled,
+  color,
+  deletionSelection,
+  setDeletionSelection,
+  focusColor,
+  isDeletion,
+  showLabel
 }) => {
   const { camera, raycaster } = useThree();
   const meshRef = useRef();
   const labelRef = useRef(); // New ref for the label container
 
-  const currentData = volumeSelections[volumeId];
+  const currentData = isDeletion ? deletionSelection : volumeSelections[volumeId];
   const position = useMemo(() => new THREE.Vector3(...currentData.position), [currentData.position]);
   const size = useMemo(() => new THREE.Vector3(...currentData.size), [currentData.size]);
 
@@ -21,10 +27,11 @@ export const VolumeSelectionBox = ({
   const [isTPressed, setIsTPressed] = useState(false);
   const dragInfo = useRef(null);
 
-  // Sync scale and label position immediately after React re-renders from state
   useLayoutEffect(() => {
-    if (meshRef.current && labelRef.current) {
+    if (meshRef.current) {
       meshRef.current.scale.set(1, 1, 1);
+    }
+    if (labelRef.current) {
       labelRef.current.position.set(position.x, position.y, position.z);
     }
   }, [position, size]);
@@ -76,7 +83,9 @@ export const VolumeSelectionBox = ({
       // Update Mesh
       meshRef.current.position.set(newPos.x, newPos.y, newPos.z);
       // Update Label (Moves with translate)
-      labelRef.current.position.set(newPos.x, newPos.y, newPos.z);
+      if(labelRef.current) {
+        labelRef.current.position.set(newPos.x, newPos.y, newPos.z);
+      }
 
     } else {
       // Resize Logic
@@ -98,7 +107,9 @@ export const VolumeSelectionBox = ({
       
       // Update Label (Stays at the TOP of the resized box)
       // Note: we use newSize.y here so it floats above the new height
-      labelRef.current.position.set(newPos.x, newPos.y, newPos.z);
+      if(labelRef.current) {
+        labelRef.current.position.set(newPos.x, newPos.y, newPos.z);
+      }
     }
   };
 
@@ -111,14 +122,23 @@ export const VolumeSelectionBox = ({
     const finalSize = new THREE.Vector3();
     box.getSize(finalSize); 
 
-    setVolumeSelections(prev => ({
-      ...prev,
-      [volumeId]: { 
-        ...prev[volumeId], 
-        position: [finalPos.x, finalPos.y, finalPos.z], 
-        size: [finalSize.x, finalSize.y, finalSize.z] 
-      }
-    }));
+    if (isDeletion) {
+      setDeletionSelection(prev => ({
+        ...prev,
+          position: [finalPos.x, finalPos.y, finalPos.z], 
+          size: [finalSize.x, finalSize.y, finalSize.z] 
+      }));
+    }
+    else {
+      setVolumeSelections(prev => ({
+        ...prev,
+        [volumeId]: { 
+          ...prev[volumeId], 
+          position: [finalPos.x, finalPos.y, finalPos.z], 
+          size: [finalSize.x, finalSize.y, finalSize.z] 
+        }
+      }));
+    }
     
     setIsDragging(false);
     setOrbitControlsEnabled(true);
@@ -130,14 +150,14 @@ export const VolumeSelectionBox = ({
       {/* The Label is now a sibling to the mesh. 
         It has its own group with a ref so we can move it without scaling it.
       */}
-      <group ref={labelRef}>
+      {(isDeletion || !showLabel)? null : <group ref={labelRef}>
         <Html distanceFactor={10} transform sprite center> 
           <div className="annotation bg-dark text-white px-2 py-1 rounded shadow-sm" 
                style={{ fontSize: '14px', pointerEvents: 'none', whiteSpace: 'nowrap' }}>
             {currentData.name}
           </div>
         </Html>
-      </group>
+      </group>}
 
       <mesh
         ref={meshRef}
@@ -148,7 +168,7 @@ export const VolumeSelectionBox = ({
       >
         <boxGeometry args={[size.x, size.y, size.z]} />
         <meshStandardMaterial 
-          color={isDragging ? "#ffcc00" : "#0088ff"} 
+          color={isDragging ? focusColor : color} 
           transparent 
           opacity={0.3} 
           depthWrite={false}

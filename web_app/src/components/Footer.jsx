@@ -1,12 +1,11 @@
 import { useState , useEffect } from 'react'
-import { DetailsModal , ScannerConnectionStatusToast } from './Modals'
+import { DetailsModal , ScannerConnectionStatusToast , SettingsModal } from './Modals'
 import Button from 'react-bootstrap/Button';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Tooltip from 'react-bootstrap/Tooltip';
 
 const Footer = ({displaySettings, setDisplaySettings, scannerOnline}) => {
     const [showScannerConnectionToast, setShowScannerConnectionToast] = useState(false);
-    console.log('rerendered')
     useEffect(()=>{
         setShowScannerConnectionToast(true)
     }, [scannerOnline])
@@ -28,8 +27,12 @@ const Footer = ({displaySettings, setDisplaySettings, scannerOnline}) => {
                     <Button 
                         className="d-flex flex-column justify-content-center h-100 footer-button" 
                         variant="dark"
+                        onClick={(e) => {
+                                setDisplaySettings(prev => ({...prev, 'visibleModal':'settings'}));
+                                e.currentTarget.blur();
+                            }}
                     >
-                        <span>Untitled-0</span>
+                        <span>{displaySettings['projectName']}</span>
                     </Button>
                 </OverlayTrigger>
 
@@ -56,7 +59,7 @@ const Footer = ({displaySettings, setDisplaySettings, scannerOnline}) => {
                         className="d-flex flex-column justify-content-center h-100 footer-button" 
                         variant="dark"
                     >
-                        MKS
+                        meter, kg, sec
                     </Button>
                 </OverlayTrigger>
             
@@ -75,7 +78,10 @@ const Footer = ({displaySettings, setDisplaySettings, scannerOnline}) => {
                         style={{'fontSize':'1em'}} 
                         className="d-flex flex-column justify-content-center h-100 footer-button" 
                         variant="dark"
-                        onClick = {() => setDisplaySettings(prev => ({...prev, 'visibleModal':'details'}))}
+                        onClick = {(e) => {
+                            setDisplaySettings(prev => ({...prev, 'visibleModal':'details'}));
+                            e.currentTarget.blur();
+                        }}
                     >
                             ⓘ
                     </Button>
@@ -83,6 +89,12 @@ const Footer = ({displaySettings, setDisplaySettings, scannerOnline}) => {
 
             </div>
             
+            <SettingsModal
+                displaySettings={displaySettings}
+                setDisplaySettings={setDisplaySettings}
+            >
+            </SettingsModal>
+
             <ScannerConnectionStatusToast
                 showScannerConnectionToast={showScannerConnectionToast}
                 setShowScannerConnectionToast={setShowScannerConnectionToast}

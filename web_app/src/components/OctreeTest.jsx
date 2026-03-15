@@ -67,6 +67,13 @@ function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , position ,
           }
         }
 
+        else if (type == 'DELETE_DONE') {
+          console.log('done deletion')
+          isWorkerBusy.current = false; 
+          positionAttrRef.current.data.needsUpdate = true;
+          colorAttrRef.current.data.needsUpdate = true;  
+        }
+
         else if (type === 'CLEAR_DONE') {
           console.log('Octree has been successfully cleared.')
           isWorkerBusy.current = false;
@@ -77,6 +84,7 @@ function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , position ,
         }
 
         else if (type === 'UPDATE_DONE') {
+          
           positionAttrRef.current.data.needsUpdate = true;
           colorAttrRef.current.data.needsUpdate = true;        
           geometryRef.current.setDrawRange(0, payload.vertexCount);
@@ -125,7 +133,7 @@ function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , position ,
     acc.current += delta
     if (acc.current < INTERVAL) return
     acc.current -= INTERVAL
-    if (!isLoaded) return;
+    if (!isLoaded || isWorkerBusy.current) return;
     
     isWorkerBusy.current = true;
     
@@ -145,7 +153,7 @@ function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , position ,
       type: 'UPDATE',
       payload: cameraData
     });
-    console.log('ran update')
+    //console.log('ran update')
   });
 
   return (
