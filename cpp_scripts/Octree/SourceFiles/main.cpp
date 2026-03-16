@@ -141,6 +141,7 @@ int load_ply(std::vector<PointXYZRGBA>& points, const std::string& path) {
     return 0;
 }
 
+
 int main() {
     BoundingBox bb = BoundingBox(PointXYZ(-6, -11, 2), PointXYZ(4, 12, 3));
     Matrix4x4 worldToCamera = {{
@@ -158,7 +159,7 @@ int main() {
     Camera c = {0, 1.5, 12, worldToCamera, projection, 1280, 161.0500030517578};
     
     std::vector<PointXYZRGBA> points;
-    load_ply(points, "../assets/pcl1.ply");
+    load_ply(points, "../assets/scan3dlive-scan-test.ply");
 
     //Get bounding box of all points
     PointXYZ minPoint = points[0];
@@ -178,23 +179,12 @@ int main() {
     
     uint16_t originalRootId = ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID;
     ModifiableNestedOctree<PointXYZRGBA>::expandRoot(BoundingBox(minPoint, maxPoint));
-    //ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].printNode();
-    uint64_t checksum = 0;
-
-    for (const auto& p : points) {
-        ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].insertPoint(p);
-        checksum+=1;
-    }
     ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].repairLOD(originalRootId);
-    //ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].printNode();
+    PointXYZ mnp(0, 0, 0);
+    PointXYZ mxp(1, 1, 1);
+    BoundingBox bb2(mnp, mxp);
+    ModifiableNestedOctree<PointXYZRGBA>::deletePoints(bb2, 10, 10, 10);
     std::cout <<"Done"<<std::endl;
     
-    for(int i = 0; i < 1000; i++) {
-        //ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].serializeForR3F(c, 100, 0);
-    }
-    std::cout << "Result: " << checksum << std::endl;
-    
-    //ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].printNode();
-
     return 0;
 }

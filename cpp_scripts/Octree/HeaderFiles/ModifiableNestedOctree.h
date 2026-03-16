@@ -12,7 +12,12 @@
 #include <string>
 #include <sstream>
 #include <algorithm>
+#include <cmath>
+#include <limits>
 
+struct IdentityHash {
+    size_t operator()(uint16_t v) const { return static_cast<size_t>(v); }
+};
 
 /** 
  * @class ModifiableNestedOctree
@@ -36,7 +41,7 @@ private:
     BoundingBox boundingBox;
 
     /** Point grid occupation array */
-    robin_hood::unordered_flat_map<uint16_t, PointT> pointGridMap = {};
+    robin_hood::unordered_flat_map<uint16_t, PointT, IdentityHash> pointGridMap = {};
 
     /** Children of the MNO node*/
     std::array<uint32_t, 8> children = {UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX};
@@ -52,7 +57,7 @@ public:
     inline static std::vector<ModifiableNestedOctree> MNO;
     static void expandRoot(const BoundingBox& box);
     static void clear();
-
+    static void deletePoints(const BoundingBox& box, float rotationX, float rotationY, float rotationZ);
     /**
      * @brief MNO constructor functions
      */
@@ -92,6 +97,7 @@ public:
     */
     uint8_t* serializeForR3F(const Camera& c, int maxDepth, float minPixelSize) const;
     uint8_t* serializeFullOctreeToPLY();
+    uint8_t* serializePointsInBoxToPLY(const BoundingBox& box, float rotationX, float rotationY, float rotationZ);
 
     /**
     * Compiles MNO node into output buffer (float)
@@ -135,6 +141,110 @@ void ModifiableNestedOctree<PointT>::clear() {
     freeMNOIndices.clear();
     ROOT_ID = 0;
     POINT_COUNT = 0;
+}
+
+template <typename PointT>
+void ModifiableNestedOctree<PointT>::deletePoints(const BoundingBox& box, float rotationX, float rotationY, float rotationZ) {
+    if (MNO.empty()) return;
+
+    // Precompute sine and cosine of the angles.
+    // We use the angles directly, but we will apply the inverse rotation operations manually.
+    float cx = std::cos(rotationX), sx = std::sin(rotationX);
+    float cy = std::cos(rotationY), sy = std::sin(rotationY);
+    float cz = std::cos(rotationZ), sz = std::sin(rotationZ);
+
+    PointXYZ center = box.getCenter();
+
+    // Helper lambda to apply the inverse rotation to any point, bringing it into the unrotated box's local space.
+    auto inverseTransform = [&](const PointXYZ& p) -> PointXYZ {
+        // Translate relative to box origin
+        float dx = p.x - center.x;
+        float dy = p.y - center.y;
+        float dz = p.z - center.z;
+
+        // 1. Apply Inverse X rotation FIRST
+        float x1 = dx;
+        float y1 = dy * cx + dz * sx;
+        float z1 = -dy * sx + dz * cx;
+
+        // 2. Apply Inverse Y rotation SECOND
+        float x2 = x1 * cy - z1 * sy;
+        float y2 = y1;
+        float z2 = x1 * sy + z1 * cy;
+
+        // 3. Apply Inverse Z rotation LAST
+        float x3 = x2 * cz + y2 * sz;
+        float y3 = -x2 * sz + y2 * cz;
+        float z3 = z2;
+
+        // Translate back to world space
+        return {x3 + center.x, y3 + center.y, z3 + center.z};
+    };
+
+    std::vector<uint32_t> queue;
+    queue.push_back(ROOT_ID);
+    
+    size_t head = 0;
+    while (head < queue.size()) {
+        uint32_t currentNodeId = queue[head++];
+        ModifiableNestedOctree<PointT>& node = MNO[currentNodeId];
+        
+        // 1. OBB-AABB Intersection Check (Conservative Pruning)
+        // We transform all 8 corners of the node's AABB into the local space of the target box.
+        const BoundingBox& nodeBox = node.getBoundingBox();
+        std::array<PointXYZ, 8> corners = nodeBox.getCorners();
+        
+        float minLocX = std::numeric_limits<float>::max();
+        float minLocY = std::numeric_limits<float>::max();
+        float minLocZ = std::numeric_limits<float>::max();
+        float maxLocX = std::numeric_limits<float>::lowest();
+        float maxLocY = std::numeric_limits<float>::lowest();
+        float maxLocZ = std::numeric_limits<float>::lowest();
+
+        for (const auto& corner : corners) {
+            PointXYZ locC = inverseTransform(corner);
+            if (locC.x < minLocX) minLocX = locC.x;
+            if (locC.y < minLocY) minLocY = locC.y;
+            if (locC.z < minLocZ) minLocZ = locC.z;
+            if (locC.x > maxLocX) maxLocX = locC.x;
+            if (locC.y > maxLocY) maxLocY = locC.y;
+            if (locC.z > maxLocZ) maxLocZ = locC.z;
+        }
+
+        // Check if this newly generated local AABB intersects the target unrotated box.
+        // If not, there is absolutely no overlap, and we can safely prune this branch.
+        if (box.maxCorner.x < minLocX || box.minCorner.x > maxLocX ||
+            box.maxCorner.y < minLocY || box.minCorner.y > maxLocY ||
+            box.maxCorner.z < minLocZ || box.minCorner.z > maxLocZ) {
+            continue; 
+        }
+
+        // 2. Identify and delete points within the bounding box
+        std::vector<uint16_t> keysToDelete;
+        for (const auto& [gridCell, point] : node.pointGridMap) {
+            // Transform the actual point to see if it falls inside the target box
+            // Note: Assumes 'point' can be passed to inverseTransform (i.e., it is a PointXYZ or castable)
+            PointXYZ localPoint = inverseTransform(point); 
+            
+            if (box.containsPoint(localPoint)) { 
+                keysToDelete.push_back(gridCell);
+            }
+        }
+
+        // Erase the points and decrement the global point counter
+        for (uint16_t key : keysToDelete) {
+            node.pointGridMap.erase(key);
+            POINT_COUNT--;
+        }
+
+        // 3. Queue existing children for traversal
+        for (int i = 0; i < 8; ++i) {
+            uint32_t childId = node.getChildId(i);
+            if (childId != UINT32_MAX) {
+                queue.push_back(childId);
+            }
+        }
+    }
 }
 
 template <typename PointT>
@@ -245,13 +355,17 @@ template <typename PointT>
 uint16_t ModifiableNestedOctree<PointT>::getPointGridCell(const PointT& p) const {
     if (!boundingBox.containsPoint(p)) return UINT16_MAX;
  
-    double relX = (p.x - boundingBox.minCorner.x) * boundingBox.inv_length;
-    double relY = (p.y - boundingBox.minCorner.y) * boundingBox.inv_width;
-    double relZ = (p.z - boundingBox.minCorner.z) * boundingBox.inv_height;
+    double scaleX = boundingBox.inv_length * GRID_LENGTH;
+    double scaleY = boundingBox.inv_width * GRID_LENGTH;
+    double scaleZ = boundingBox.inv_height * GRID_LENGTH;
 
-    uint16_t gridCoordX = std::min(GRID_LENGTH-1, static_cast<int>(std::floor(relX * GRID_LENGTH)));
-    uint16_t gridCoordY = std::min(GRID_LENGTH-1, static_cast<int>(std::floor(relY * GRID_LENGTH)));
-    uint16_t gridCoordZ = std::min(GRID_LENGTH-1, static_cast<int>(std::floor(relZ * GRID_LENGTH)));
+    uint16_t gridCoordX = static_cast<uint16_t>((p.x - boundingBox.minCorner.x) * scaleX);
+    uint16_t gridCoordY = static_cast<uint16_t>((p.y - boundingBox.minCorner.y) * scaleY);
+    uint16_t gridCoordZ = static_cast<uint16_t>((p.z - boundingBox.minCorner.z) * scaleZ);
+
+    if (gridCoordX >= GRID_LENGTH) gridCoordX = GRID_LENGTH - 1;
+    if (gridCoordY >= GRID_LENGTH) gridCoordY = GRID_LENGTH - 1;
+    if (gridCoordZ >= GRID_LENGTH) gridCoordZ = GRID_LENGTH - 1;
 
     return (gridCoordZ<<(GRID_RESOLUTION*2)) | (gridCoordY<<GRID_RESOLUTION) | (gridCoordX);
 }
@@ -292,7 +406,7 @@ void ModifiableNestedOctree<PointT>::expandRoot(const BoundingBox& box) {
     if(MNO.size() == 0) {
         MNO.reserve(10000);
         ModifiableNestedOctree<PointT>::MNO.emplace_back(
-            ModifiableNestedOctree<PointT>::ROOT_ID, UINT16_MAX, PointXYZ(0, 0, 0), PointXYZ(1, 1, 1)
+            ModifiableNestedOctree<PointT>::ROOT_ID, UINT16_MAX, PointXYZ(-25, -25, -25), PointXYZ(25, 25, 25)
         );
     }
     // Check if current root contains the box, if not, expand root until it does
@@ -540,6 +654,155 @@ uint8_t* ModifiableNestedOctree<PointT>::serializeFullOctreeToPLY() {
             
             writePtr += bytesPerPoint;
         }
+    }
+
+    return buffer;
+}
+
+// Need to clean this up
+template <typename PointT>
+uint8_t* ModifiableNestedOctree<PointT>::serializePointsInBoxToPLY(const BoundingBox& box, float rotationX, float rotationY, float rotationZ) {
+    if (MNO.empty()) return nullptr;
+
+    // Precompute sine and cosine of the angles.
+    float cx = std::cos(rotationX), sx = std::sin(rotationX);
+    float cy = std::cos(rotationY), sy = std::sin(rotationY);
+    float cz = std::cos(rotationZ), sz = std::sin(rotationZ);
+
+    PointXYZ center = box.getCenter();
+
+    // Helper lambda to apply the inverse rotation to any point
+    auto inverseTransform = [&](const PointXYZ& p) -> PointXYZ {
+        // Translate relative to box origin
+        float dx = p.x - center.x;
+        float dy = p.y - center.y;
+        float dz = p.z - center.z;
+
+        // 1. Apply Inverse X rotation FIRST
+        float x1 = dx;
+        float y1 = dy * cx + dz * sx;
+        float z1 = -dy * sx + dz * cx;
+
+        // 2. Apply Inverse Y rotation SECOND
+        float x2 = x1 * cy - z1 * sy;
+        float y2 = y1;
+        float z2 = x1 * sy + z1 * cy;
+
+        // 3. Apply Inverse Z rotation LAST
+        float x3 = x2 * cz + y2 * sz;
+        float y3 = -x2 * sz + y2 * cz;
+        float z3 = z2;
+
+        // Translate back to world space
+        return {x3 + center.x, y3 + center.y, z3 + center.z};
+    };
+
+    // 1. Traverse and collect points within the bounding box
+    std::vector<PointT> pointsToSerialize;
+    std::vector<uint32_t> queue;
+    queue.push_back(ROOT_ID);
+    
+    size_t head = 0;
+    while (head < queue.size()) {
+        uint32_t currentNodeId = queue[head++];
+        ModifiableNestedOctree<PointT>& node = MNO[currentNodeId];
+        
+        // OBB-AABB Intersection Check (Conservative Pruning)
+        const BoundingBox& nodeBox = node.getBoundingBox();
+        std::array<PointXYZ, 8> corners = nodeBox.getCorners();
+        
+        float minLocX = std::numeric_limits<float>::max();
+        float minLocY = std::numeric_limits<float>::max();
+        float minLocZ = std::numeric_limits<float>::max();
+        float maxLocX = std::numeric_limits<float>::lowest();
+        float maxLocY = std::numeric_limits<float>::lowest();
+        float maxLocZ = std::numeric_limits<float>::lowest();
+
+        for (const auto& corner : corners) {
+            PointXYZ locC = inverseTransform(corner);
+            if (locC.x < minLocX) minLocX = locC.x;
+            if (locC.y < minLocY) minLocY = locC.y;
+            if (locC.z < minLocZ) minLocZ = locC.z;
+            if (locC.x > maxLocX) maxLocX = locC.x;
+            if (locC.y > maxLocY) maxLocY = locC.y;
+            if (locC.z > maxLocZ) maxLocZ = locC.z;
+        }
+
+        // Prune branch if there is absolutely no overlap
+        if (box.maxCorner.x < minLocX || box.minCorner.x > maxLocX ||
+            box.maxCorner.y < minLocY || box.minCorner.y > maxLocY ||
+            box.maxCorner.z < minLocZ || box.minCorner.z > maxLocZ) {
+            continue; 
+        }
+
+        // Check individual points and collect them
+        for (const auto& [gridCell, point] : node.pointGridMap) {
+            PointXYZ localPoint = inverseTransform(point); 
+            
+            if (box.containsPoint(localPoint)) { 
+                pointsToSerialize.push_back(point);
+            }
+        }
+
+        // Queue existing children for traversal
+        for (int i = 0; i < 8; ++i) {
+            uint32_t childId = node.getChildId(i);
+            if (childId != UINT32_MAX) {
+                queue.push_back(childId);
+            }
+        }
+    }
+
+    // 2. Generate the PLY Header
+    size_t totalPoints = pointsToSerialize.size();
+    
+    std::stringstream header;
+    header << "ply\n";
+    header << "format binary_little_endian 1.0\n";
+    header << "element vertex " << totalPoints << "\n";
+    header << "property float x\n";
+    header << "property float y\n";
+    header << "property float z\n";
+    header << "property uchar red\n";
+    header << "property uchar green\n";
+    header << "property uchar blue\n";
+    header << "property uchar alpha\n";
+    header << "end_header\n";
+    
+    std::string headerStr = header.str();
+    
+    // 3. Calculate memory requirements
+    // Each point: 3 * float (12 bytes) + 4 * uint8 (4 bytes) = 16 bytes
+    const size_t bytesPerPoint = 16;
+    uint32_t plyDataSize = static_cast<uint32_t>(headerStr.size() + (totalPoints * bytesPerPoint));
+    uint32_t totalBufferSize = sizeof(uint32_t) + plyDataSize;
+
+    // 4. Allocate buffer (use malloc so JS can free it if needed)
+    uint8_t* buffer = static_cast<uint8_t*>(std::malloc(totalBufferSize));
+    if (!buffer) return nullptr;
+
+    // 5. Write the payload size (the "header" for JS)
+    std::memcpy(buffer, &plyDataSize, sizeof(uint32_t));
+
+    // 6. Write the PLY Header string
+    uint8_t* writePtr = buffer + sizeof(uint32_t);
+    std::memcpy(writePtr, headerStr.data(), headerStr.size());
+    writePtr += headerStr.size();
+
+    // 7. Write Binary Point Data
+    for (const auto& p : pointsToSerialize) {
+        // XYZ (12 bytes)
+        *(reinterpret_cast<float*>(writePtr)) = p.x;
+        *(reinterpret_cast<float*>(writePtr + 4)) = p.y;
+        *(reinterpret_cast<float*>(writePtr + 8)) = p.z;
+        
+        // RGBA (4 bytes)
+        writePtr[12] = p.r;
+        writePtr[13] = p.g;
+        writePtr[14] = p.b;
+        writePtr[15] = p.a;
+        
+        writePtr += bytesPerPoint;
     }
 
     return buffer;

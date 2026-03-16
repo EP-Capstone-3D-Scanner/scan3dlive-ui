@@ -212,6 +212,22 @@ extern "C" {
     }
 
     EMSCRIPTEN_KEEPALIVE
+    void * getOctreeBoxBinaryPLY(float minX, float minY, float minZ, float maxX, float maxY, float maxZ, float rX, float rY, float rZ) {
+        const PointXYZ minPoint(minX, minY, minZ);
+        const PointXYZ maxPoint(maxX, maxY, maxZ);
+        const BoundingBox saveBox(minPoint, maxPoint);
+        return ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].serializePointsInBoxToPLY(saveBox, rX, rY, rZ);
+    }
+
+    EMSCRIPTEN_KEEPALIVE
+    void deleteOctreePoints(float minX, float minY, float minZ, float maxX, float maxY, float maxZ, float rX, float rY, float rZ) {
+        const PointXYZ minPoint(minX, minY, minZ);
+        const PointXYZ maxPoint(maxX, maxY, maxZ);
+        const BoundingBox deletionBox(minPoint, maxPoint);
+        ModifiableNestedOctree<PointXYZRGBA>::deletePoints(deletionBox, rX, rY, rZ);
+    }
+
+    EMSCRIPTEN_KEEPALIVE
     void clearOctree() {
         ModifiableNestedOctree<PointXYZRGBA>::clear();
     }
