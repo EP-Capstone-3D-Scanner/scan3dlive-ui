@@ -1,4 +1,4 @@
-import OctreeManager from '../modules/OctreeModuleDeletionTest.js';
+import OctreeManager from '../modules/OctreeModuleRotDelTest.js';
 // emcc -sENVIRONMENT=web -sMALLOC=emmalloc -O3 -flto -msimd128 -msse SourceFiles/EmscriptenMain.cpp SourceFiles/tinyply.cpp SourceFiles/BoundingBox.cpp SourceFiles/Camera.cpp SourceFiles/Points.cpp -I HeaderFiles -o OctreeModuleClearTest.js -sEXPORT_ES6 -sEXPORTED_FUNCTIONS=_malloc,_free -sEXPORTED_RUNTIME_METHODS=HEAPF32,HEAPU32,HEAPU8 -sINITIAL_MEMORY=2048MB -sALLOW_MEMORY_GROWTH=1 -sASSERTIONS=1
 const BYTES_PER_POINT = 16;
 const FLOATS_PER_POINT = 4;
@@ -72,13 +72,17 @@ self.onmessage = async (e) => {
   else if (type == 'DELETE') {
     const position = payload['position']
     const size = payload['size']
+    const rot = payload['rotation']
     const minX = position[0]-size[0]/2;
     const minY = position[1]-size[1]/2;
     const minZ = position[2]-size[2]/2;
     const maxX = position[0]+size[0]/2;
     const maxY = position[1]+size[1]/2;
     const maxZ = position[2]+size[2]/2;
-    OctreeHelper._deleteOctreePoints(minX, minY, minZ, maxX, maxY, maxZ);
+    const rotX = rot[0];
+    const rotY = rot[1];
+    const rotZ = rot[2];
+    OctreeHelper._deleteOctreePoints(minX, minY, minZ, maxX, maxY, maxZ, rotX, rotY, rotZ);
     self.postMessage({
       type: 'DELETE_DONE',
     });

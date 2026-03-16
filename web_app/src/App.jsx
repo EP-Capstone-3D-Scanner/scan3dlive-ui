@@ -34,11 +34,11 @@ function App() {
   })
   
   const [volumeSelections, setVolumeSelections] = useState({});
-  const [deletionSelection, setDeletionSelection] = useState({'position':[0, 0, 0], 'size':[1, 1, 1]})
+  const [deletionSelection, setDeletionSelection] = useState({'position':[0, 0, 0], 'size':[1, 1, 1], 'rotation':[0, 0, 0]})
 
   const octreeWorkerRef = useRef(null)
   const isWorkerBusy = useRef(true)
-  //const websocketRef = useWebSocketClient({url: "wss://localhost:8001", scannerReconnecting : sidebarDisplay['scannerReconnecting'] , workerRef : octreeWorkerRef, isWorkerBusy:isWorkerBusy, setSidebarDisplay: setSidebarDisplay});
+  //const websocketRef = useWebSocketClient({urlxs : "wss://localhost:8001", scannerReconnecting : sidebarDisplay['scannerReconnecting'] , workerRef : octreeWorkerRef, isWorkerBusy:isWorkerBusy, setSidebarDisplay: setSidebarDisplay});
   //const websocketRef = useWebSocketClient({url: "wss://10.6.95.47:8001", scannerReconnecting : sidebarDisplay['scannerReconnecting'] , workerRef : octreeWorkerRef, isWorkerBusy:isWorkerBusy, setSidebarDisplay: setSidebarDisplay});
   const websocketRef = useWebSocketClient({url: "wss://192.168.2.15:8001", scannerReconnecting : sidebarDisplay['scannerReconnecting'] , workerRef : octreeWorkerRef, isWorkerBusy:isWorkerBusy, setSidebarDisplay: setSidebarDisplay});
 

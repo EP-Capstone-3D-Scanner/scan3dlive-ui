@@ -88,6 +88,7 @@ export function SettingsModal({ displaySettings , setDisplaySettings }) {
             'projectAuthor':projectSettings['projectAuthor'],
             'projectDesciption':projectSettings['projectDescription']
         }))
+        console.log(projectSettings['projectName'])
     }
 
     const handleClose = () => {

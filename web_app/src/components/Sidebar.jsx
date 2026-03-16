@@ -16,7 +16,7 @@ function EditVolumeSelectionsMenu({sidebarDisplay, setSidebarDisplay, volumeSele
     const handleAddVolumeSelectionButton = () => {
         const keys = Object.keys(volumeSelections);
         const maxVolumeId = keys.length == 0? 1 : (Math.max(...keys) + 1);
-        setVolumeSelections({...volumeSelections, [maxVolumeId]:{name:`Object-${maxVolumeId}`, position:[0, 0, 0], size:[2, 2, 2], notes:''}})
+        setVolumeSelections({...volumeSelections, [maxVolumeId]:{name:`Object-${maxVolumeId}`, position:[0, 0, 0], size:[2, 2, 2], rotation:[0, 0, 0], notes:''}})
         setSidebarDisplay({...sidebarDisplay, 'selectedVolume':[maxVolumeId], 'page':'UpdateVolumeSelectionMenu', 'selectedVolumeNew':true})
         invalidateCanvas()
     }
@@ -55,9 +55,10 @@ function EditVolumeSelectionsMenu({sidebarDisplay, setSidebarDisplay, volumeSele
                                     </Badge>
                                 </div>
                                 
-                                <div className="text-light text-start pt-0 flex-grow-1" style={{ fontSize: '0.65em' }}>
+                                <div className="text-light text-start pt-0 flex-grow-1" style={{ fontSize: '0.55em' }}>
                                     <b>Position</b>: ({volumeSelections[volumeId].position.map(n => Math.trunc(n)).join(", ")})<br/>
                                     <b>Size</b>: ({volumeSelections[volumeId].size.map(n => Math.trunc(n)).join(", ")})<br/>
+                                    <b>Rotation</b>: ({volumeSelections[volumeId].rotation.map(n => Math.trunc(n)).join(", ")})<br/>
                                 </div>
                                 
                                 <ButtonGroup vertical className="d-flex flex-column me-0 gap-1" style={{ width: '15%' }}>
@@ -82,102 +83,80 @@ function EditVolumeSelectionsMenu({sidebarDisplay, setSidebarDisplay, volumeSele
     )
 }
 
-function UpdateVolumeSelectionMenu({sidebarDisplay, setSidebarDisplay, volumeSelections, setVolumeSelections}) {
+function UpdateVolumeSelectionMenu({ sidebarDisplay, setSidebarDisplay, volumeSelections, setVolumeSelections }) {
+    const volumeId = sidebarDisplay['selectedVolume'];
+    const currentVolume = volumeSelections[volumeId];
 
     const handleCloseVolumeSelectionButton = () => {
-        if(sidebarDisplay['selectedVolumeNew']) {
-            const { [sidebarDisplay['selectedVolume']]: _ , ...rest } = volumeSelections;
+        if (sidebarDisplay['selectedVolumeNew']) {
+            const { [volumeId]: _, ...rest } = volumeSelections;
             setVolumeSelections(rest);
-            setSidebarDisplay({...sidebarDisplay, selectedVolume:-1, selectedVolumeNew:false})
+            setSidebarDisplay({ ...sidebarDisplay, selectedVolume: -1, selectedVolumeNew: false });
         }
-        setSidebarDisplay({...sidebarDisplay, page:'EditVolumeSelectionsMenu', selectedVolume:-1})
-        invalidateCanvas()
-    }
+        setSidebarDisplay({ ...sidebarDisplay, page: 'EditVolumeSelectionsMenu', selectedVolume: -1 });
+        invalidateCanvas();
+    };
 
     const handleDoneVolumeSelectionButton = () => {
-        setSidebarDisplay({...sidebarDisplay, page:'EditVolumeSelectionsMenu', selectedVolume:-1})
-        invalidateCanvas()
-    }
+        setSidebarDisplay({ ...sidebarDisplay, page: 'EditVolumeSelectionsMenu', selectedVolume: -1 });
+        invalidateCanvas();
+    };
 
-    const handleNameChange = (newValue) => {
-        const volumeId = sidebarDisplay['selectedVolume'];
+    // Consolidated handler for Name and Notes
+    const handleTextChange = (field, newValue) => {
+        setVolumeSelections(prev => ({
+            ...prev,
+            [volumeId]: { ...prev[volumeId], [field]: newValue }
+        }));
+    };
+
+    // Allows raw string input for numeric fields (handles ".", "-", and typing)
+    const handleNumericChange = (property, axisIndex, newValue) => {
+        // Regex allows: empty string, just a minus, just a dot, or valid partial numbers
+        if (newValue !== '' && newValue !== '-' && !/^-?\d*\.?\d*$/.test(newValue)) return;
+
         setVolumeSelections(prev => ({
             ...prev,
             [volumeId]: {
                 ...prev[volumeId],
-                name:newValue 
+                [property]: prev[volumeId][property].map((val, i) => i === axisIndex ? newValue : val)
             }
         }));
-    }
+    };
 
-    const handleNotesChange = (newValue) => {
-        const volumeId = sidebarDisplay['selectedVolume'];
+    // Sanitizes values when the user stops typing
+    const handleBlur = (property, axisIndex, value) => {
+        let parsedVal = parseFloat(value);
+        if (isNaN(parsedVal)) parsedVal = 0;
+
+        // Enforce non-negative for size
+        if (property === 'size' && parsedVal < 0) parsedVal = 0;
+
         setVolumeSelections(prev => ({
             ...prev,
             [volumeId]: {
                 ...prev[volumeId],
-                notes:newValue 
+                [property]: prev[volumeId][property].map((coord, i) => 
+                    i === axisIndex ? parsedVal : coord
+                )
             }
         }));
-    }
-
-    const handlePositionChange = (axisIndex, newValue) => {
-        const val = parseFloat(newValue)||newValue; 
-        const volumeId = sidebarDisplay['selectedVolume'];
-
-        setVolumeSelections(prev => ({
-            ...prev,
-            [volumeId]: {
-                ...prev[volumeId],
-                position: prev[volumeId].position.map((coord, i) => 
-                    i === axisIndex ? val : coord
-            )}
-        }));
     };
 
-    const handleSizeChange = (axisIndex, newValue) => {
-        let val = parseFloat(newValue)||newValue; 
-        if(parseFloat(val) && val < 0) {
-            val = 0;
-        }
-        const volumeId = sidebarDisplay['selectedVolume'];
-
-        setVolumeSelections(prev => ({
-            ...prev,
-            [volumeId]: {
-                ...prev[volumeId],
-                size: prev[volumeId].size.map((coord, i) => 
-                    i === axisIndex ? val : coord
-            )}
-        }));
-    };
-
-    const handleBlur = (property, axisIndex, newValue) => {
-        let val = parseFloat(newValue)||0; 
-        const volumeId = sidebarDisplay['selectedVolume'];
-        if(property == 'size') {
-            val = val>=0 && val
-        }
-
-        setVolumeSelections(prev => ({
-            ...prev,
-            [volumeId]: {
-                ...prev[volumeId],
-                property: prev[volumeId].position.map((coord, i) => 
-                    i === axisIndex ? val : coord
-            )}
-        }));
-    };
+    // Guard clause in case volumeId is invalid/not found
+    if (!currentVolume) return null;
 
     return (
         <>
             <div className="pb-2">Edit Volume Selection</div>
-            <div className="mb-2 pb-1" style={{'fontSize':'0.75em'}}>Volume ID: #{sidebarDisplay['selectedVolume']}</div>
+            <div className="mb-2 pb-1" style={{ 'fontSize': '0.75em' }}>Volume ID: #{volumeId}</div>
 
-            <Form style={{ fontSize: '0.8em', 'overflowX':'hidden'}} className="d-flex flex-column p-3 flex-grow-1">
+            <Form style={{ fontSize: '0.8em', 'overflowX': 'hidden' }} className="d-flex flex-column p-3 flex-grow-1">
+                
+                {/* Name Input */}
                 <Form.Group className="mb-2 d-flex flex-column">
                     <div className="d-flex align-items-center mb-2">
-                        <Form.Label className="me-2" htmlFor={'volume-selection-name'} style={{ width: '3em', marginBottom: 0 }}>
+                        <Form.Label className="me-2" htmlFor={'volume-name'} style={{ width: '3em', marginBottom: 0 }}>
                             Name: 
                         </Form.Label>
                         <div className="flex-grow-1">
@@ -186,30 +165,31 @@ function UpdateVolumeSelectionMenu({sidebarDisplay, setSidebarDisplay, volumeSel
                                 size="sm" 
                                 type="text" 
                                 style={{ height: '22px', fontSize: '0.9em' }}
-                                value={volumeSelections[sidebarDisplay['selectedVolume']].name} 
+                                value={currentVolume.name} 
                                 className="py-0" 
-                                onChange={(e) => handleNameChange(e.target.value)} 
+                                onChange={(e) => handleTextChange('name', e.target.value)} 
                             />
                         </div>
                     </div>
                 </Form.Group>
 
-                <Form.Group className="mb-2 d-flex flex-column border-top p-2" style={{'fontSize':'0.9em'}}>
+                {/* Position Group */}
+                <Form.Group className="mb-2 d-flex flex-column border-top p-2" style={{ 'fontSize': '0.9em' }}>
                     <Form.Label className="mb-2 align-self-start"><b>Position: </b></Form.Label>
                     {['x', 'y', 'z'].map((axis, index) => (
-                        <div key={axis} className="d-flex align-items-center mb-2">
-                            <Form.Label htmlFor={`position-${axis}`} style={{ width: '2.5em', marginBottom: 0 }}>
+                        <div key={`pos-${axis}`} className="d-flex align-items-center mb-2">
+                            <Form.Label htmlFor={`pos-${axis}`} style={{ width: '2.5em', marginBottom: 0 }}>
                                 {axis}:
                             </Form.Label>
                             <div className="flex-grow-1">
                                 <Form.Control 
-                                    id={`position-${axis}`}
+                                    id={`pos-${axis}`}
                                     size="sm" 
                                     type="text" 
                                     style={{ height: '22px', fontSize: '0.9em' }}
-                                    value={volumeSelections[sidebarDisplay['selectedVolume']].position[index]} 
+                                    value={currentVolume.position[index]} 
                                     className="py-0" 
-                                    onChange={(e) => handlePositionChange(index, e.target.value)} 
+                                    onChange={(e) => handleNumericChange('position', index, e.target.value)} 
                                     onBlur={(e) => handleBlur('position', index, e.target.value)}
                                 />
                             </div>
@@ -217,23 +197,23 @@ function UpdateVolumeSelectionMenu({sidebarDisplay, setSidebarDisplay, volumeSel
                     ))}
                 </Form.Group>
 
-                <Form.Group className="mb-2 d-flex flex-column border-top p-2" style={{'fontSize':'0.9em'}}>
+                {/* Size Group */}
+                <Form.Group className="mb-2 d-flex flex-column border-top p-2" style={{ 'fontSize': '0.9em' }}>
                     <Form.Label className="mb-2 align-self-start"><b>Size: </b></Form.Label>
-                    
                     {['x(l)', 'y(w)', 'z(h)'].map((axis, index) => (
-                        <div key={axis} className="d-flex align-items-center mb-2">
-                            <Form.Label htmlFor={`position-${axis}`} style={{ width: '2.5em', marginBottom: 0 }}>
+                        <div key={`size-${axis}`} className="d-flex align-items-center mb-2">
+                            <Form.Label htmlFor={`size-${axis}`} style={{ width: '2.5em', marginBottom: 0 }}>
                                 {axis}:
                             </Form.Label>
                             <div className="flex-grow-1">
                                 <Form.Control 
-                                    id={`position-${axis}`}
+                                    id={`size-${axis}`}
                                     size="sm" 
                                     type="text" 
                                     style={{ height: '22px', fontSize: '0.9em' }}
-                                    value={volumeSelections[sidebarDisplay['selectedVolume']].size[index]} 
+                                    value={currentVolume.size[index]} 
                                     className="py-0" 
-                                    onChange={(e) => handleSizeChange(index, e.target.value)} 
+                                    onChange={(e) => handleNumericChange('size', index, e.target.value)} 
                                     onBlur={(e) => handleBlur('size', index, e.target.value)}
                                 />
                             </div>
@@ -241,21 +221,42 @@ function UpdateVolumeSelectionMenu({sidebarDisplay, setSidebarDisplay, volumeSel
                     ))}
                 </Form.Group>
 
-                <Form.Group className="mb-2 d-flex flex-column border-top p-2" style={{'fontSize':'0.9em'}}>
-                    <Form.Label className="mb-2 align-self-start"><b>Labels: </b></Form.Label>
+                {/* Rotation Group */}
+                <Form.Group className="mb-2 d-flex flex-column border-top p-2" style={{ 'fontSize': '0.9em' }}>
+                    <Form.Label className="mb-2 align-self-start"><b>Rotation: </b></Form.Label>
+                    {['rx', 'ry', 'rz'].map((axis, index) => (
+                        <div key={`rot-${axis}`} className="d-flex align-items-center mb-2">
+                            <Form.Label htmlFor={`rot-${axis}`} style={{ width: '2.5em', marginBottom: 0 }}>
+                                {axis}:
+                            </Form.Label>
+                            <div className="flex-grow-1">
+                                <Form.Control 
+                                    id={`rot-${axis}`}
+                                    size="sm" 
+                                    type="text" 
+                                    style={{ height: '22px', fontSize: '0.9em' }}
+                                    value={currentVolume.rotation[index]} 
+                                    className="py-0" 
+                                    onChange={(e) => handleNumericChange('rotation', index, e.target.value)} 
+                                    onBlur={(e) => handleBlur('rotation', index, e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    ))}
                 </Form.Group>
 
-                <Form.Group className="mb-2 border-top p-2">
+                {/* Notes/Labels */}
+                <Form.Group className="mb-2 d-flex flex-column border-top p-2" style={{ 'fontSize': '0.9em' }}>
+                    <Form.Label className="mb-2 align-self-start"><b>Labels/Notes: </b></Form.Label>
                     <Form.Control 
                         id={`volume-note`}
                         as="textarea"
                         size="sm" 
-                        type="text" 
                         style={{ height: '100px', fontSize: '0.9em' }}
-                        value={volumeSelections[sidebarDisplay['selectedVolume']].notes}
+                        value={currentVolume.notes || ""}
                         placeholder={"Notes..."}
-                        className="py-0 text-start" 
-                        onChange={(e) => handleNotesChange(e.target.value)} 
+                        className="py-1 text-start" 
+                        onChange={(e) => handleTextChange('notes', e.target.value)} 
                     />
                 </Form.Group>                
             </Form>
@@ -271,60 +272,48 @@ function UpdateVolumeSelectionMenu({sidebarDisplay, setSidebarDisplay, volumeSel
                 )}
             </div>
         </>
-    )
+    );
 }
 
-function DeletionSelectionMenu({sidebarDisplay, setSidebarDisplay, deletionSelection, setDeletionSelection, octreeWorkerRef, isWorkerBusy}) {
+function DeletionSelectionMenu({ sidebarDisplay, setSidebarDisplay, deletionSelection, setDeletionSelection, octreeWorkerRef, isWorkerBusy }) {
 
     const handleCloseDeletionButton = () => {
-        setSidebarDisplay({...sidebarDisplay, show:false})
-        invalidateCanvas()
-    }
+        setSidebarDisplay({ ...sidebarDisplay, show: false });
+        invalidateCanvas();
+    };
 
     const handleDeleteSelectionButton = () => {
-        setSidebarDisplay({...sidebarDisplay, show:false})
-        invalidateCanvas()
-        if(octreeWorkerRef) {
+        setSidebarDisplay({ ...sidebarDisplay, show: false });
+        invalidateCanvas();
+        if (octreeWorkerRef) {
             isWorkerBusy.current = true;
-            octreeWorkerRef.current.postMessage({type: 'DELETE', payload: {...deletionSelection}})
+            octreeWorkerRef.current.postMessage({ type: 'DELETE', payload: { ...deletionSelection } });
         }
-    }
+    };
 
-    const handlePositionChange = (axisIndex, newValue) => {
-        const val = parseFloat(newValue)||newValue; 
+    // Generic Change Handler: Allows raw string input so decimals/negatives can be typed
+    const handleChange = (property, axisIndex, newValue) => {
+        if (newValue !== '' && newValue !== '-' && !/^-?\d*\.?\d*$/.test(newValue)) return;
 
         setDeletionSelection(prev => ({
             ...prev,
-            position: position.map((coord, i) => 
-                    i === axisIndex ? val : coord
-            )
+            [property]: prev[property].map((val, i) => i === axisIndex ? newValue : val)
         }));
     };
 
-    const handleSizeChange = (axisIndex, newValue) => {
-        let val = parseFloat(newValue)||newValue; 
-        if(parseFloat(val) && val < 0) {
-            val = 0;
-        }
-        setDeletionSelection(prev => ({
-            ...prev,
-            size: size.map((coord, i) => 
-                i === axisIndex ? val : coord
-            )
-        }));
-    };
-
-    const handleBlur = (property, axisIndex, newValue) => {
-        let val = parseFloat(newValue)||0; 
+    const handleBlur = (property, axisIndex, value) => {
+        let parsedVal = parseFloat(value);
         
-        if(property == 'size') {
-            val = val>=0 && val
+        if (isNaN(parsedVal)) parsedVal = 0;
+
+        if (property === 'size' && parsedVal < 0) {
+            parsedVal = 0;
         }
 
         setDeletionSelection(prev => ({
             ...prev,
-            property: prev.position.map((coord, i) => 
-                i === axisIndex ? val : coord
+            [property]: prev[property].map((coord, i) => 
+                i === axisIndex ? parsedVal : coord
             )
         }));
     };
@@ -333,12 +322,13 @@ function DeletionSelectionMenu({sidebarDisplay, setSidebarDisplay, deletionSelec
         <>
             <div className="pb-2">Delete Points</div>
 
-            <Form style={{ fontSize: '0.8em', 'overflowX':'hidden'}} className="d-flex flex-column p-3 flex-grow-1">
+            <Form style={{ fontSize: '0.8em', 'overflowX': 'hidden' }} className="d-flex flex-column p-3 flex-grow-1">
 
-                <Form.Group className="mb-2 d-flex flex-column border-top p-2" style={{'fontSize':'0.9em'}}>
+                {/* Position Group */}
+                <Form.Group className="mb-2 d-flex flex-column border-top p-2" style={{ 'fontSize': '0.9em' }}>
                     <Form.Label className="mb-2 align-self-start"><b>Position: </b></Form.Label>
                     {['x', 'y', 'z'].map((axis, index) => (
-                        <div key={axis} className="d-flex align-items-center mb-2">
+                        <div key={`pos-${axis}`} className="d-flex align-items-center mb-2">
                             <Form.Label htmlFor={`position-${axis}`} style={{ width: '2.5em', marginBottom: 0 }}>
                                 {axis}:
                             </Form.Label>
@@ -350,7 +340,7 @@ function DeletionSelectionMenu({sidebarDisplay, setSidebarDisplay, deletionSelec
                                     style={{ height: '22px', fontSize: '0.9em' }}
                                     value={deletionSelection.position[index]} 
                                     className="py-0" 
-                                    onChange={(e) => handlePositionChange(index, e.target.value)} 
+                                    onChange={(e) => handleChange('position', index, e.target.value)} 
                                     onBlur={(e) => handleBlur('position', index, e.target.value)}
                                 />
                             </div>
@@ -358,29 +348,53 @@ function DeletionSelectionMenu({sidebarDisplay, setSidebarDisplay, deletionSelec
                     ))}
                 </Form.Group>
 
-                <Form.Group className="mb-2 d-flex flex-column border-top p-2" style={{'fontSize':'0.9em'}}>
+                {/* Size Group */}
+                <Form.Group className="mb-2 d-flex flex-column border-top p-2" style={{ 'fontSize': '0.9em' }}>
                     <Form.Label className="mb-2 align-self-start"><b>Size: </b></Form.Label>
-                    
                     {['x(l)', 'y(w)', 'z(h)'].map((axis, index) => (
-                        <div key={axis} className="d-flex align-items-center mb-2">
-                            <Form.Label htmlFor={`position-${axis}`} style={{ width: '2.5em', marginBottom: 0 }}>
+                        <div key={`size-${axis}`} className="d-flex align-items-center mb-2">
+                            <Form.Label htmlFor={`size-${axis}`} style={{ width: '2.5em', marginBottom: 0 }}>
                                 {axis}:
                             </Form.Label>
                             <div className="flex-grow-1">
                                 <Form.Control 
-                                    id={`position-${axis}`}
+                                    id={`size-${axis}`}
                                     size="sm" 
                                     type="text" 
                                     style={{ height: '22px', fontSize: '0.9em' }}
                                     value={deletionSelection.size[index]} 
                                     className="py-0" 
-                                    onChange={(e) => handleSizeChange(index, e.target.value)} 
+                                    onChange={(e) => handleChange('size', index, e.target.value)} 
                                     onBlur={(e) => handleBlur('size', index, e.target.value)}
                                 />
                             </div>
                         </div>
                     ))}
-                </Form.Group>             
+                </Form.Group>
+
+                {/* Rotation Group */}
+                <Form.Group className="mb-2 d-flex flex-column border-top p-2" style={{ 'fontSize': '0.9em' }}>
+                    <Form.Label className="mb-2 align-self-start"><b>Rotation: </b></Form.Label>
+                    {['rx', 'ry', 'rz'].map((axis, index) => (
+                        <div key={`rot-${axis}`} className="d-flex align-items-center mb-2">
+                            <Form.Label htmlFor={`rotation-${axis}`} style={{ width: '2.5em', marginBottom: 0 }}>
+                                {axis}:
+                            </Form.Label>
+                            <div className="flex-grow-1">
+                                <Form.Control 
+                                    id={`rotation-${axis}`}
+                                    size="sm" 
+                                    type="text" 
+                                    style={{ height: '22px', fontSize: '0.9em' }}
+                                    value={deletionSelection.rotation[index]} 
+                                    className="py-0" 
+                                    onChange={(e) => handleChange('rotation', index, e.target.value)} 
+                                    onBlur={(e) => handleBlur('rotation', index, e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    ))}
+                </Form.Group>           
             </Form>
 
             <div className="d-flex flex-column gap-2 mx-3 my-2">
@@ -392,7 +406,7 @@ function DeletionSelectionMenu({sidebarDisplay, setSidebarDisplay, deletionSelec
                 </Button>
             </div>
         </>
-    )
+    );
 }
 
 function EditViewSelectionsMenu({displaySettings, setDisplaySettings, closeSidebar}) {

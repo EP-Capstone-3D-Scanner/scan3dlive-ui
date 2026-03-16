@@ -5,15 +5,20 @@ import OctreeWorker from './octree.worker.js?worker'
 
 
 
-function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , position , rotation , url , octreeMaxLOD , setSidebarDisplay }) {
+function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , position , rotation , url , octreeMaxLOD , displaySettings }) {
   const { invalidate } = useThree()
   const [isLoaded, setIsLoaded] = useState(false)
   const geometryRef = useRef(new THREE.BufferGeometry())
   const positionAttrRef = useRef(null)
+  const displaySettingsRef = useRef(displaySettings);
   const colorAttrRef = useRef(null)
   const pointsInsertedRef = useRef(false);
   const sharedUint8ViewRef = useRef(null);
   
+  useEffect(() => {
+    displaySettingsRef.current = displaySettings;
+  }, [displaySettings]);
+
   useEffect(() => {
       invalidate();
       octreeWorkerRef.current = new OctreeWorker()
@@ -70,6 +75,7 @@ function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , position ,
         else if (type == 'DELETE_DONE') {
           console.log('done deletion')
           isWorkerBusy.current = false; 
+          geometryRef.current.setDrawRange(0, 0);
           positionAttrRef.current.data.needsUpdate = true;
           colorAttrRef.current.data.needsUpdate = true;  
         }
@@ -96,29 +102,21 @@ function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , position ,
         }
 
         else if (type === 'SAVE_DONE') {
-            const fileData = payload; // This is now the actual Uint8Array containing the bytes
+            const fileData = payload; 
+            const currentSettings = displaySettingsRef.current;
 
-            if (!fileData || fileData.length === 0) {
-                console.error("Worker sent empty file data!");
-                return;
-            }
-
-            // Pass the data directly into the Blob
             const blob = new Blob([fileData], { type: 'application/octet-stream' });
             const url = URL.createObjectURL(blob);
 
-
             const link = document.createElement('a');
             link.href = url;
-            link.download = "exported_pointcloud.ply"; 
+            link.download = currentSettings['projectName'] || 'download'; 
             
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
 
             URL.revokeObjectURL(url);
-            
-            console.log(`Download triggered for ${fileData.length} bytes.`);
             isWorkerBusy.current = false;
         }
       }

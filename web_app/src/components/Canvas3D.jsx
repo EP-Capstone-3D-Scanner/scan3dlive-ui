@@ -53,7 +53,7 @@ const BackgroundManager = ({ skyboxVisible, skyboxPreset, backgroundVisible, bac
   return null;
 };
 
-function Canvas3D({ websocketRef , octreeWorkerRef , volumeSelections , setVolumeSelections , deletionSelection, setDeletionSelection, displaySettings , sidebarDisplay, setSidebarDisplay , isWorkerBusy , setDisplaySettings }) {
+function Canvas3D({ websocketRef , octreeWorkerRef , volumeSelections , setVolumeSelections , deletionSelection, setDeletionSelection, displaySettings , sidebarDisplay , isWorkerBusy}) {
   const [orbitEnabled, setOrbitEnabled] = useState(true);
 
   return (
@@ -106,7 +106,7 @@ function Canvas3D({ websocketRef , octreeWorkerRef , volumeSelections , setVolum
           rotation={[0, 0, 0]} 
           url={binaryPLYFile} 
           octreeMaxLOD={displaySettings['octreeMaxLOD']}
-          setSidebarDisplay={setSidebarDisplay}
+          displaySettings={displaySettings}
           octreeWorkerRef={octreeWorkerRef}
           websocketRef={websocketRef}
           scannerReconnecting={sidebarDisplay['scannerReconnecting']}
