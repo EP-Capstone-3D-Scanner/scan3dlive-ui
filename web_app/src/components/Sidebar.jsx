@@ -1,8 +1,3 @@
-import React from 'react';
-import Tab from 'react-bootstrap/Tab';
-import Tabs from 'react-bootstrap/Tabs';
-import Row from 'react-bootstrap/Row';
-import Col from 'react-bootstrap/Col';
 import Button from 'react-bootstrap/Button';
 import Badge from 'react-bootstrap/Badge';
 import ListGroup from 'react-bootstrap/ListGroup';
@@ -62,10 +57,10 @@ function EditVolumeSelectionsMenu({sidebarDisplay, setSidebarDisplay, volumeSele
                                 </div>
                                 
                                 <ButtonGroup vertical className="d-flex flex-column me-0 gap-1" style={{ width: '15%' }}>
-                                    <Button onClick={() => {handleEditVolumeSelectionButton(volumeId)}} variant="outline-primary" className="text-center p-0" style={{ fontSize: '0.55em'}}>
+                                    <Button onClick={() => {handleEditVolumeSelectionButton(volumeId)}} variant="primary" className="text-center p-0" style={{ fontSize: '0.55em'}}>
                                         <img style={{ width: '40%'}} src={`icons\\illustration-icon.svg`}></img>
                                     </Button>
-                                    <Button onClick={() => {handleDeleteVolumeSelectionButton(volumeId)}} variant="outline-danger" className="text-center p-0" style={{ fontSize: '0.55em'}}>
+                                    <Button onClick={() => {handleDeleteVolumeSelectionButton(volumeId)}} variant="danger" className="text-center p-0" style={{ fontSize: '0.55em'}}>
                                         <img style={{ width: '30%'}} src={`icons\\recycle-bin-icon.svg`}></img>
                                     </Button>
                                 </ButtonGroup>
@@ -283,7 +278,6 @@ function DeletionSelectionMenu({ sidebarDisplay, setSidebarDisplay, deletionSele
     };
 
     const handleDeleteSelectionButton = () => {
-        setSidebarDisplay({ ...sidebarDisplay, show: false });
         invalidateCanvas();
         if (octreeWorkerRef) {
             isWorkerBusy.current = true;

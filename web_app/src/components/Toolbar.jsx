@@ -51,7 +51,7 @@ const Toolbar = ({sidebarDisplay, setSidebarDisplay}) => {
                 size="sm"
             >
                 <option disabled hidden value="">Select Option</option>
-                <option value="0">None</option>
+                <option value="">None</option>
                 <option value="1">Beam</option>
                 <option value="2">Board</option>
                 <option value="3">Bookcase</option>

@@ -168,6 +168,167 @@ export function SettingsModal({ displaySettings , setDisplaySettings }) {
     );
 }
 
+export function SaveAsModal({ displaySettings, setDisplaySettings, volumeSelections, octreeWorkerRef, isWorkerBusy }) {
+    const [saveAsSettings, setSaveAsSettings] = useState({
+        'saveAsName': displaySettings['projectName'] || '',
+        'saveAsSelection': '',
+        'saveAsType': 'All Data',
+    });
+
+    const pointTypes = ['Beam', 'Board', 'Bookcase', 'Ceiling', 'Chair', 'Column', 'Door', 'Floor', 'Sofa', 'Table', 'Wall', 'Window', 'Clutter'];
+    const [items, setItems] = useState([]);
+
+    useEffect(() => {
+        if (saveAsSettings.saveAsType === 'All Data') {
+            setItems([{ label: 'N/A', value: 'all' }]);
+            setSaveAsSettings(prev => ({ ...prev, saveAsSelection: 'all' }));
+        } 
+        else if (saveAsSettings.saveAsType === 'Volume') {
+            const volumes = Object.entries(volumeSelections || {}).map(([id, v]) => ({ 
+                label: v.name || id, 
+                value: id 
+            }));
+            
+            setItems(volumes);
+            setSaveAsSettings(prev => ({ 
+                ...prev, 
+                saveAsSelection: volumes.length > 0 ? volumes[0].value : '' 
+            }));
+        } 
+        else if (saveAsSettings.saveAsType === 'Point Type') {
+            const points = pointTypes.map(type => ({ label: type, value: type }));
+            setItems(points);
+            setSaveAsSettings(prev => ({ 
+                ...prev, 
+                saveAsSelection: points.length > 0 ? points[0].value : '' 
+            }));
+        }
+    }, [saveAsSettings.saveAsType, volumeSelections]); // Safely scoped dependencies
+
+    const handleSaveAsNameChange = (e) => {
+        const value = e.target.value;
+        const sanitizedValue = value.replace(/[<>:"/\\|?*]/g, "");
+        
+        setSaveAsSettings(prev => ({
+            ...prev, 
+            saveAsName: sanitizedValue 
+        }));
+    };
+
+    const handleChange = (field, value) => {
+        setSaveAsSettings(prev => ({
+            ...prev,
+            [field]: value
+        }));
+    };
+
+    const handleSaveAs = () => {
+        console.log("Saving with settings:", saveAsSettings);
+        if (octreeWorkerRef) {
+            isWorkerBusy.current = true;
+            
+            if (saveAsSettings.saveAsType === 'All Data') {
+                octreeWorkerRef.current.postMessage({ type: 'SAVE', payload: displaySettings['projectName'] });
+            }
+            else if (saveAsSettings.saveAsType === 'Volume') {
+                const volumeId = saveAsSettings.saveAsSelection;
+                
+                if (!volumeId || !volumeSelections[volumeId]) {
+                    console.error("No valid volume selected.");
+                    isWorkerBusy.current = false;
+                    return;
+                }
+
+                octreeWorkerRef.current.postMessage({ 
+                    type: 'SAVE_AS_VOL', 
+                    payload: { 
+                        ...volumeSelections[volumeId], 
+                        fileName: saveAsSettings.saveAsName
+                    } 
+                });
+            }
+        }
+    };
+
+    const handleClose = () => {
+        setDisplaySettings(prev => ({ ...prev, 'visibleModal': '' }));
+        setSaveAsSettings({
+            'saveAsName': displaySettings['projectName'] || '',
+            'saveAsSelection': 'all',
+            'saveAsType': 'All Data',
+        });
+    };
+
+    return (
+        <Modal
+            show={displaySettings['visibleModal'] === 'save_as'}
+            style={{ zIndex: 99999999 }}
+            onHide={handleClose}
+            size="md"
+            centered
+        >
+            <Modal.Header closeButton>
+                <Modal.Title className="w-100 text-center">
+                    <b>Save Data...</b>
+                </Modal.Title>
+            </Modal.Header>
+
+            <Modal.Body>
+                <Form>
+                    <Form.Group className="mb-3">
+                        <Form.Label>Region:</Form.Label>
+                        <Form.Select 
+                            value={saveAsSettings.saveAsType}
+                            onChange={(e) => handleChange('saveAsType', e.target.value)} 
+                            size="sm"
+                        >
+                            <option value="All Data">All Data</option>
+                            <option value="Volume">Volume</option>
+                            <option value="Point Type">Point Type</option>
+                        </Form.Select>
+                    </Form.Group>
+
+                    <Form.Group className="mb-3">
+                        <Form.Label>Selection:</Form.Label>
+                        <Form.Select 
+                            disabled={(saveAsSettings.saveAsType === 'All Data') || (items.length === 0)} 
+                            value={saveAsSettings.saveAsSelection}
+                            onChange={(e) => handleChange('saveAsSelection', e.target.value)}
+                            size="sm" 
+                        >
+                            {items.map((item, index) => (
+                                <option key={index} value={item.value}>
+                                    {item.label}
+                                </option>
+                            ))}
+                        </Form.Select>
+                    </Form.Group>
+
+                    <Form.Group className="mb-2">
+                        <Form.Label>Save As:</Form.Label>
+                        <Form.Control
+                            size="sm"  
+                            type="text" 
+                            placeholder="e.g. My_3D_Scan"
+                            value={saveAsSettings.saveAsName}
+                            onChange={handleSaveAsNameChange}
+                        />
+                        <Form.Text className="text-muted" style={{ fontSize: '0.8em' }}>
+                            Forbidden: {"< > : \" / \\ | ? *"}
+                        </Form.Text>
+                    </Form.Group>
+                </Form>
+            </Modal.Body>
+
+            <Modal.Footer>
+                <Button variant="primary" onClick={handleSaveAs}>
+                    Save
+                </Button>
+            </Modal.Footer>
+        </Modal>
+    );
+}
+
 export function ScannerConnectionStatusToast({showScannerConnectionToast, setShowScannerConnectionToast}) {
     const handleClose = () => {
         setShowScannerConnectionToast(false)

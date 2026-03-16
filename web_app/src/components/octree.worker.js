@@ -94,6 +94,7 @@ self.onmessage = async (e) => {
     self.postMessage({
       type: 'CLEAR_DONE',
     });
+    doneDeletion = true;
   }
 
   else if (type === 'UPDATE') {
@@ -147,8 +148,34 @@ self.onmessage = async (e) => {
       const dataBytes = OctreeHelper.HEAPU32[dataNodePtr >> 2];
       const startIndex = dataNodePtr + 4;
       const fileData = new Uint8Array(dataBytes);
+      const fileName = payload;
       fileData.set(OctreeHelper.HEAPU8.subarray(startIndex, startIndex + dataBytes));
-      self.postMessage({ type: 'SAVE_DONE', payload: fileData });
+      self.postMessage({ type: 'SAVE_DONE', payload: fileData, fileName: fileName});
       OctreeHelper._free(dataNodePtr);
+  }
+
+  else if (type === 'SAVE_AS_VOL') {
+    console.log(payload)
+    const position = payload['position']
+    const size = payload['size']
+    const rot = payload['rotation']
+    const minX = position[0]-size[0]/2;
+    const minY = position[1]-size[1]/2;
+    const minZ = position[2]-size[2]/2;
+    const maxX = position[0]+size[0]/2;
+    const maxY = position[1]+size[1]/2;
+    const maxZ = position[2]+size[2]/2;
+    const rotX = rot[0];
+    const rotY = rot[1];
+    const rotZ = rot[2];
+    const dataNodePtr = OctreeHelper._getOctreeBoxBinaryPLY(minX, minY, minZ, maxX, maxY, maxZ, rotX, rotY, rotZ);
+    const dataBytes = OctreeHelper.HEAPU32[dataNodePtr >> 2];
+    const startIndex = dataNodePtr + 4;
+    const fileData = new Uint8Array(dataBytes);
+    const fileName = payload.fileName;
+    fileData.set(OctreeHelper.HEAPU8.subarray(startIndex, startIndex + dataBytes));
+    self.postMessage({ type: 'SAVE_DONE', payload: fileData, fileName: fileName });
+    OctreeHelper._free(dataNodePtr);
+    console.log('ran')
   }
 };

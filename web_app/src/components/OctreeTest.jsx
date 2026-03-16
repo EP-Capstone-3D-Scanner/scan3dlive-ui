@@ -10,21 +10,16 @@ function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , position ,
   const [isLoaded, setIsLoaded] = useState(false)
   const geometryRef = useRef(new THREE.BufferGeometry())
   const positionAttrRef = useRef(null)
-  const displaySettingsRef = useRef(displaySettings);
   const colorAttrRef = useRef(null)
   const pointsInsertedRef = useRef(false);
   const sharedUint8ViewRef = useRef(null);
-  
-  useEffect(() => {
-    displaySettingsRef.current = displaySettings;
-  }, [displaySettings]);
 
   useEffect(() => {
       invalidate();
       octreeWorkerRef.current = new OctreeWorker()
       octreeWorkerRef.current.onmessage = (e) => {
         setInterval(()=>{invalidate()}, 1)
-        const { type, payload } = e.data;
+        const { type, payload , fileName } = e.data;
 
         if (type === 'READY') {
           octreeWorkerRef.current.postMessage({ type: 'INIT', payload: { url } })
@@ -86,11 +81,11 @@ function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , position ,
           pointsInsertedRef.current = false;
           positionAttrRef.current.data.needsUpdate = true;
           colorAttrRef.current.data.needsUpdate = true;  
+          geometryRef.current.setDrawRange(0, 0);
           setIsLoaded(false);
         }
 
         else if (type === 'UPDATE_DONE') {
-          
           positionAttrRef.current.data.needsUpdate = true;
           colorAttrRef.current.data.needsUpdate = true;        
           geometryRef.current.setDrawRange(0, payload.vertexCount);
@@ -102,15 +97,13 @@ function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , position ,
         }
 
         else if (type === 'SAVE_DONE') {
-            const fileData = payload; 
-            const currentSettings = displaySettingsRef.current;
-
+            const fileData = payload;
             const blob = new Blob([fileData], { type: 'application/octet-stream' });
             const url = URL.createObjectURL(blob);
 
             const link = document.createElement('a');
             link.href = url;
-            link.download = currentSettings['projectName'] || 'download'; 
+            link.download = (fileName || 'download') + '.ply'; 
             
             document.body.appendChild(link);
             link.click();

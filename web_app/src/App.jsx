@@ -1,4 +1,4 @@
-import { useState , useRef } from 'react'
+import { useState , useRef , createContext } from 'react'
 import Canvas3D from './components/Canvas3D';
 import Navigator from './components/Navigator';
 import Sidebar from './components/Sidebar';
@@ -100,8 +100,11 @@ function App() {
       
       <Footer 
         displaySettings={displaySettings}
+        volumeSelections={volumeSelections}
         setDisplaySettings={setDisplaySettings}
         scannerOnline={sidebarDisplay['scannerOnline']}
+        octreeWorkerRef={octreeWorkerRef}
+        isWorkerBusy={isWorkerBusy}
       >
       </Footer>
     </div>

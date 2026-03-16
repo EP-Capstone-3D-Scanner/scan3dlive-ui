@@ -1,10 +1,10 @@
 import { useState , useEffect } from 'react'
-import { DetailsModal , ScannerConnectionStatusToast , SettingsModal } from './Modals'
+import { DetailsModal , ScannerConnectionStatusToast , SettingsModal , SaveAsModal } from './Modals'
 import Button from 'react-bootstrap/Button';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Tooltip from 'react-bootstrap/Tooltip';
 
-const Footer = ({displaySettings, setDisplaySettings, scannerOnline}) => {
+const Footer = ({displaySettings, setDisplaySettings, volumeSelections, scannerOnline, octreeWorkerRef, isWorkerBusy}) => {
     const [showScannerConnectionToast, setShowScannerConnectionToast] = useState(false);
     useEffect(()=>{
         setShowScannerConnectionToast(true)
@@ -106,6 +106,15 @@ const Footer = ({displaySettings, setDisplaySettings, scannerOnline}) => {
                 setDisplaySettings={setDisplaySettings}
             >
             </DetailsModal>
+
+            <SaveAsModal
+                volumeSelections={volumeSelections}
+                displaySettings={displaySettings}
+                setDisplaySettings={setDisplaySettings}
+                octreeWorkerRef={octreeWorkerRef}
+                isWorkerBusy={isWorkerBusy}
+            >
+            </SaveAsModal>
         </>
     )
 };

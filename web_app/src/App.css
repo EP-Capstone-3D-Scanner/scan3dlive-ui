@@ -89,6 +89,7 @@ a.dropdown-toggle.nav-link[role="button"][href="#"][tabindex="0"]:focus {
 #Sidebar {
   width: 20vw;
   max-width: 500px;
+  min-width: 250px;
   height:100%;
   border-color: #494f54;
   transition:right 0.3s ease;

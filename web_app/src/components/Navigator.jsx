@@ -31,7 +31,11 @@ const Navigator = ({ websocketRef , octreeWorkerRef, displaySettings, setDisplay
     }
 
     const saveUserPLYFile = (e) => {
-        octreeWorkerRef.current.postMessage({ type: 'SAVE', payload: {} })
+        octreeWorkerRef.current.postMessage({ type: 'SAVE', payload: displaySettings['projectName']})
+    }
+
+    const saveUserPLYFileAs = (e) => {
+        setDisplaySettings(prev=>({...prev, 'visibleModal':'save_as'}))
     }
 
     const handleSettingsButtonClick = () => {
@@ -114,8 +118,8 @@ const Navigator = ({ websocketRef , octreeWorkerRef, displaySettings, setDisplay
                             />
                         </NavDropdown.Item>
                         <NavDropdown.Divider/>
-                        <NavDropdown.Item>Save</NavDropdown.Item>
-                        <NavDropdown.Item onClick={saveUserPLYFile}>Save As...</NavDropdown.Item>
+                        <NavDropdown.Item onClick={saveUserPLYFile}>Save</NavDropdown.Item>
+                        <NavDropdown.Item onClick={saveUserPLYFileAs}>Save As...</NavDropdown.Item>
                         <NavDropdown.Divider/>
                         <NavDropdown.Item onClick={handleSettingsButtonClick}>Settings</NavDropdown.Item>
                         <NavDropdown.Item onClick={handleInfoButtonClick}>Info</NavDropdown.Item>

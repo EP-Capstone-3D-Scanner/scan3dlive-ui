@@ -27,6 +27,7 @@ export const VolumeSelectionBox = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isTPressed, setIsTPressed] = useState(false);
   const [isRPressed, setIsRPressed] = useState(false);
+  const [isSPressed, setIsSPressed] = useState(false);
   const dragInfo = useRef(null);
 
   useLayoutEffect(() => {
