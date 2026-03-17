@@ -1,14 +1,36 @@
 import ToolbarButton from './ToolbarButton'
-import { invalidateCanvas, getCamera } from './Canvas3D'
 import Form from 'react-bootstrap/Form';
+import { useContext } from 'react'
+import { invalidateCanvas, getCamera } from './Canvas3D'
+import { AppContext } from './Contexts/Contexts';
 
-const Toolbar = ({sidebarDisplay, setSidebarDisplay}) => {
+const Toolbar = () => {
+    
+    const {
+        sidebarDisplay, 
+        setSidebarDisplay
+    } = useContext(AppContext)
+
     const handleVolumeSelectionButtonClick = () => {
-        setSidebarDisplay(prev=>({...prev, 'page':'EditVolumeSelectionsMenu', 'show':true, 'showDeletionSelection':false}));
+        setSidebarDisplay(
+            prev=>({
+                ...prev, 
+                page:'EditVolumeSelectionsMenu', 
+                show:true, 
+                showDeletionSelection:false
+            })
+        );
     }
 
     const handleDeleteButtonClick = () => {
-        setSidebarDisplay(prev=>({...prev, 'page':'DeletionSelectionMenu', 'show':true, 'showDeletionSelection':true}));
+        setSidebarDisplay(
+            prev=>({
+                ...prev, 
+                page:'DeletionSelectionMenu', 
+                show:true, 
+                showDeletionSelection:true
+            })
+        );
     }
 
     const handleZoomInButtonClick = () => {
@@ -31,7 +53,12 @@ const Toolbar = ({sidebarDisplay, setSidebarDisplay}) => {
 
     const handlePointLabelButtonClick = (e) => {
         const value = e.target.value;
-        setSidebarDisplay(prev=>({...prev, 'pointLabelType':value}))
+        setSidebarDisplay(
+            prev=>({
+                ...prev, 
+                pointLabelType:value
+            })
+        )
     }
 
     return (
@@ -70,7 +97,7 @@ const Toolbar = ({sidebarDisplay, setSidebarDisplay}) => {
             <button 
                 className="Sidebar-toggle-button ms-auto h-100" 
                 onClick={()=>{
-                    const showing = sidebarDisplay['show'];
+                    const showing = sidebarDisplay.show;
                     setSidebarDisplay(prev=>({...prev, 'show':!showing}));
                     }}>
                 ◥

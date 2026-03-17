@@ -148,7 +148,7 @@ self.onmessage = async (e) => {
       const dataBytes = OctreeHelper.HEAPU32[dataNodePtr >> 2];
       const startIndex = dataNodePtr + 4;
       const fileData = new Uint8Array(dataBytes);
-      const fileName = payload;
+      const fileName = payload.fileName;
       fileData.set(OctreeHelper.HEAPU8.subarray(startIndex, startIndex + dataBytes));
       self.postMessage({ type: 'SAVE_DONE', payload: fileData, fileName: fileName});
       OctreeHelper._free(dataNodePtr);

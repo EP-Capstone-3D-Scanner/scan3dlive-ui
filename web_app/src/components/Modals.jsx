@@ -1,14 +1,21 @@
-import { useState , useEffect } from 'react'
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
 import Toast from 'react-bootstrap/Toast';
 import Form from 'react-bootstrap/Form';
 import ToastContainer from 'react-bootstrap/ToastContainer';
+import { AppContext } from './Contexts/Contexts';
+import { useState , useEffect , useContext } from 'react'
 
-export function DetailsModal({ displaySettings , setDisplaySettings }) {
+export function DetailsModal() {
+    
+    const { 
+        displaySettings, 
+        setDisplaySettings 
+    } = useContext(AppContext)
+
     return (
         <Modal
-            show = {displaySettings['visibleModal'] == 'details'}
+            show = {displaySettings.visibleModal == 'details'}
             style={{ zIndex: 99999999}}
             onHide={() => setDisplaySettings(prev=>({...prev, 'visibleModal':''}))}
             size="lg"
@@ -56,11 +63,17 @@ export function DetailsModal({ displaySettings , setDisplaySettings }) {
     )
 }
 
-export function SettingsModal({ displaySettings , setDisplaySettings }) {
+export function SettingsModal() {
+    
+    const { 
+        displaySettings, 
+        setDisplaySettings 
+    } = useContext(AppContext)
+
     const [projectSettings, setProjectSettings] = useState({
-        'projectName' : displaySettings['projectName'],
-        'projectAuthor' : displaySettings['projectAuthor'],
-        'projectDescription' : displaySettings['projectDescription']
+        projectName: displaySettings.projectName,
+        projectAuthor: displaySettings.projectAuthor,
+        projectDescription: displaySettings.projectDescription
     })
     
     const handleProjectNameChange = (e) => {
@@ -69,7 +82,7 @@ export function SettingsModal({ displaySettings , setDisplaySettings }) {
         
         setProjectSettings(prev => ({
             ...prev, 
-            projectName: sanitizedValue 
+            projectName : sanitizedValue 
         }));
     };
 
@@ -83,28 +96,32 @@ export function SettingsModal({ displaySettings , setDisplaySettings }) {
     const handleSave = () => {
         setDisplaySettings(prev => ({ 
             ...prev, 
-            'visibleModal': '',
-            'projectName':projectSettings['projectName'], 
-            'projectAuthor':projectSettings['projectAuthor'],
-            'projectDesciption':projectSettings['projectDescription']
+            visibleModal: '',
+            projectName: projectSettings.projectName, 
+            projectAuthor: projectSettings.projectAuthor,
+            projectDesciption: projectSettings.projectDescription
         }))
-        console.log(projectSettings['projectName'])
     }
 
     const handleClose = () => {
-        setDisplaySettings(prev => ({ ...prev, 'visibleModal': '' }))
+        setDisplaySettings(
+            prev => ({ 
+                ...prev, 
+                visibleModal: '' 
+            })
+        )
         setProjectSettings(prev => ({ 
             ...prev, 
-            'visibleModal': '',
-            'projectName':displaySettings['projectName'], 
-            'projectAuthor':displaySettings['projectAuthor'],
-            'projectDesciption':displaySettings['projectDescription']
+            visibleModal:  '',
+            projectName: displaySettings.projectName, 
+            projectAuthor: displaySettings.projectAuthor,
+            projectDesciption: displaySettings.projectDescription
         }))
     }
 
     return (
         <Modal
-            show={displaySettings['visibleModal'] === 'settings'}
+            show={displaySettings.visibleModal === 'settings'}
             style={{ zIndex: 99999999 }}
             onHide={handleClose}
             size="md"
@@ -168,11 +185,20 @@ export function SettingsModal({ displaySettings , setDisplaySettings }) {
     );
 }
 
-export function SaveAsModal({ displaySettings, setDisplaySettings, volumeSelections, octreeWorkerRef, isWorkerBusy }) {
+export function SaveAsModal() {
+    
+    const { 
+        displaySettings, 
+        setDisplaySettings, 
+        volumeSelections, 
+        octreeWorkerRef , 
+        isWorkerBusy
+    } = useContext(AppContext)
+
     const [saveAsSettings, setSaveAsSettings] = useState({
-        'saveAsName': displaySettings['projectName'] || '',
-        'saveAsSelection': '',
-        'saveAsType': 'All Data',
+        saveAsName: displaySettings.projectName || '',
+        saveAsSelection: '',
+        saveAsType: 'All Data',
     });
 
     const pointTypes = ['Beam', 'Board', 'Bookcase', 'Ceiling', 'Chair', 'Column', 'Door', 'Floor', 'Sofa', 'Table', 'Wall', 'Window', 'Clutter'];
@@ -181,7 +207,12 @@ export function SaveAsModal({ displaySettings, setDisplaySettings, volumeSelecti
     useEffect(() => {
         if (saveAsSettings.saveAsType === 'All Data') {
             setItems([{ label: 'N/A', value: 'all' }]);
-            setSaveAsSettings(prev => ({ ...prev, saveAsSelection: 'all' }));
+            setSaveAsSettings(
+                prev => ({ 
+                    ...prev, 
+                    saveAsSelection: 'all' 
+                })
+            );
         } 
         else if (saveAsSettings.saveAsType === 'Volume') {
             const volumes = Object.entries(volumeSelections || {}).map(([id, v]) => ({ 
@@ -196,7 +227,12 @@ export function SaveAsModal({ displaySettings, setDisplaySettings, volumeSelecti
             }));
         } 
         else if (saveAsSettings.saveAsType === 'Point Type') {
-            const points = pointTypes.map(type => ({ label: type, value: type }));
+            const points = pointTypes.map(
+                type => ({ 
+                    label: type, 
+                    value: type 
+                })
+            );
             setItems(points);
             setSaveAsSettings(prev => ({ 
                 ...prev, 
@@ -228,7 +264,12 @@ export function SaveAsModal({ displaySettings, setDisplaySettings, volumeSelecti
             isWorkerBusy.current = true;
             
             if (saveAsSettings.saveAsType === 'All Data') {
-                octreeWorkerRef.current.postMessage({ type: 'SAVE', payload: displaySettings['projectName'] });
+                octreeWorkerRef.current.postMessage({ 
+                    type: 'SAVE', 
+                    payload: { 
+                        fileName: saveAsSettings.saveAsName
+                    } 
+                });
             }
             else if (saveAsSettings.saveAsType === 'Volume') {
                 const volumeId = saveAsSettings.saveAsSelection;
@@ -251,17 +292,22 @@ export function SaveAsModal({ displaySettings, setDisplaySettings, volumeSelecti
     };
 
     const handleClose = () => {
-        setDisplaySettings(prev => ({ ...prev, 'visibleModal': '' }));
+        setDisplaySettings(
+            prev => ({ 
+                ...prev, 
+                visibleModal: '' 
+            })
+        );
         setSaveAsSettings({
-            'saveAsName': displaySettings['projectName'] || '',
-            'saveAsSelection': 'all',
-            'saveAsType': 'All Data',
+            saveAsName: displaySettings.projectName || '',
+            saveAsSelection: 'all',
+            saveAsType: 'All Data',
         });
     };
 
     return (
         <Modal
-            show={displaySettings['visibleModal'] === 'save_as'}
+            show={displaySettings.visibleModal === 'save_as'}
             style={{ zIndex: 99999999 }}
             onHide={handleClose}
             size="md"
@@ -329,7 +375,14 @@ export function SaveAsModal({ displaySettings, setDisplaySettings, volumeSelecti
     );
 }
 
-export function ScannerConnectionStatusToast({showScannerConnectionToast, setShowScannerConnectionToast}) {
+export function ScannerConnectionStatusToast() {
+    const {connected} = useContext(AppContext)
+    const [showScannerConnectionToast, setShowScannerConnectionToast] = useState(false);
+    
+    useEffect(()=>{
+        setShowScannerConnectionToast(true)
+    }, [connected])
+
     const handleClose = () => {
         setShowScannerConnectionToast(false)
     }

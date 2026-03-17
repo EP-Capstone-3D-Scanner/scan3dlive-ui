@@ -1,59 +1,35 @@
-import React from 'react';
-import * as THREE from 'three'
-import { useState , useEffect, useRef , Suspense } from 'react';
-import { Canvas,  useThree } from '@react-three/fiber'
-import { Environment , FirstPersonControls , OrbitControls} from '@react-three/drei'
-import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js'
-import { VolumeSelectionBox } from './VolumeSelectionBox'
 import OctreeTest from './OctreeTest'
-import * as Loggers from './Loggers'
-//position={[-0.5,1.10,8]} rotation={[-Math.PI/2, 0, Math.PI/2]}
+import BackgroundManager from './Helpers/BackgroundManager';
+import { VolumeSelectionBox } from './VolumeSelectionBox'
+import { AppContext } from './Contexts/Contexts';
+import { Canvas } from '@react-three/fiber'
+import { useState , useContext } from 'react';
+import {  OrbitControls , FirstPersonControls } from '@react-three/drei'
 
 
 let invalidateRef = null
-let cameraRef = null
-const binaryPLYFile = "/point_clouds/UFO_2735.ply"
-
 export function invalidateCanvas() {
   console.log('invalidated')
   invalidateRef?.()
 }
 
+let cameraRef = null
 export function getCamera() {
   return cameraRef
 }
 
-const BackgroundManager = ({ skyboxVisible, skyboxPreset, backgroundVisible, backgroundColor }) => {
-  const { scene, invalidate } = useThree();
 
-  useEffect(() => {
-    if (!skyboxVisible) {
-      if (backgroundVisible) {
-        scene.background = new THREE.Color(backgroundColor);
-      } else {
-        scene.background = null;
-      }
-    }
-    setTimeout(() => invalidate(), 1);
-  }, [skyboxVisible, backgroundVisible, backgroundColor]);
+function Canvas3D() {
 
-  if (skyboxVisible) {
-    return (
-      <Suspense fallback={null}>
-        <Environment
-          key={skyboxPreset}
-          preset={skyboxPreset}
-          background
-          onLoad={() => invalidate()}
-        />
-      </Suspense>
-    )
-  }
+  const { 
+    volumeSelections, 
+    setVolumeSelections, 
+    deletionSelection, 
+    setDeletionSelection, 
+    displaySettings, 
+    sidebarDisplay, 
+  } = useContext(AppContext)
 
-  return null;
-};
-
-function Canvas3D({ websocketRef , octreeWorkerRef , volumeSelections , setVolumeSelections , deletionSelection, setDeletionSelection, displaySettings , sidebarDisplay , isWorkerBusy}) {
   const [orbitEnabled, setOrbitEnabled] = useState(true);
 
   return (
@@ -65,29 +41,28 @@ function Canvas3D({ websocketRef , octreeWorkerRef , volumeSelections , setVolum
         }}
         camera={{ fov: 75, position: [0, 1.5, 12] }}
       >
-        <BackgroundManager 
-          skyboxPreset={displaySettings['skyboxPreset']}
-          skyboxVisible={displaySettings['skyboxVisible']}
-          backgroundVisible={displaySettings['backgroundVisible']}
-          backgroundColor={displaySettings['backgroundColor']}
-        />
-        <gridHelper visible={displaySettings["gridVisible"]} args={[10]}/>
+        <BackgroundManager displaySettings={displaySettings}/>
+        <gridHelper visible={displaySettings.gridVisible} args={[10]}/>
 
-        {Object.keys(volumeSelections).map(volumeId => (
-          <VolumeSelectionBox
-            key = {volumeId}
-            isDeletion={false}
-            volumeId = {volumeId}
-            volumeSelections={volumeSelections} 
-            setVolumeSelections={setVolumeSelections}
-            setOrbitControlsEnabled={setOrbitEnabled} 
-            showLabel={displaySettings['showLabels']}
-            focusColor="#ffcc00" 
-            color="#0088ff"
-          />
-        ))}
+        {Object.keys(volumeSelections).map(
+          volumeId => (
+            <VolumeSelectionBox
+              key = {volumeId}
+              isDeletion={false}
+              volumeId = {volumeId}
+              volumeSelections={volumeSelections} 
+              setVolumeSelections={setVolumeSelections}
+              setOrbitControlsEnabled={setOrbitEnabled} 
+              showLabel={displaySettings.showLabels}
+              focusColor="#ffcc00" 
+              color="#0088ff"
+            />
+          )
+        )}
 
-        {(sidebarDisplay['page'] == 'DeletionSelectionMenu') && sidebarDisplay['show'] ? 
+        {(
+          sidebarDisplay.page == 'DeletionSelectionMenu') && 
+          sidebarDisplay.show &&
           <VolumeSelectionBox
             isDeletion={true}
             deletionSelection={deletionSelection}
@@ -95,23 +70,13 @@ function Canvas3D({ websocketRef , octreeWorkerRef , volumeSelections , setVolum
             setOrbitControlsEnabled={setOrbitEnabled} 
             focusColor="#ff0000" 
             color="#fd0000"
-          /> : null
+          />
         }
 
         <OrbitControls makeDefault enabled={orbitEnabled} />
         <ambientLight intensity={1} />
         <directionalLight position={[5, 5, 5]} />
-        <OctreeTest 
-          position={[0, 0, 0]} 
-          rotation={[0, 0, 0]} 
-          url={binaryPLYFile} 
-          octreeMaxLOD={displaySettings['octreeMaxLOD']}
-          displaySettings={displaySettings}
-          octreeWorkerRef={octreeWorkerRef}
-          websocketRef={websocketRef}
-          scannerReconnecting={sidebarDisplay['scannerReconnecting']}
-          isWorkerBusy={isWorkerBusy}
-        />
+        <OctreeTest position={[0, 0, 0]} rotation={[0, 0, 0]}/>
       </Canvas>
     </div>
   );

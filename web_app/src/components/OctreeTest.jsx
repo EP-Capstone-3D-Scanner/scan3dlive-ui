@@ -1,28 +1,37 @@
 import * as THREE from 'three'
-import { useEffect, useState, useRef } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
 import OctreeWorker from './octree.worker.js?worker' 
+import { AppContext } from './Contexts/Contexts';
+import { useThrottledFrame } from './Hooks/ThrottledFrame'
+import { useEffect, useState, useRef , useContext } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
 
 
 
-function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , position , rotation , url , octreeMaxLOD , displaySettings }) {
+function OctreeTest({ position , rotation }) {
+  
+  const { 
+    websocketRef, 
+    octreeWorkerRef, 
+    displaySettings, 
+    isWorkerBusy
+  } = useContext(AppContext)
+
   const { invalidate } = useThree()
   const [isLoaded, setIsLoaded] = useState(false)
   const geometryRef = useRef(new THREE.BufferGeometry())
   const positionAttrRef = useRef(null)
   const colorAttrRef = useRef(null)
-  const pointsInsertedRef = useRef(false);
   const sharedUint8ViewRef = useRef(null);
+  const pointsInsertedRef = useRef(false);
 
   useEffect(() => {
       invalidate();
       octreeWorkerRef.current = new OctreeWorker()
       octreeWorkerRef.current.onmessage = (e) => {
-        setInterval(()=>{invalidate()}, 1)
         const { type, payload , fileName } = e.data;
 
         if (type === 'READY') {
-          octreeWorkerRef.current.postMessage({ type: 'INIT', payload: { url } })
+          octreeWorkerRef.current.postMessage({ type: 'INIT', payload: {} })
         } 
         
         else if (type === 'INIT_DONE') {
@@ -114,20 +123,14 @@ function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , position ,
         }
       }
     return () => {octreeWorkerRef.current.terminate()}
-  }, [url])
+  }, [])
 
 
-  const MAX_HZ = 30
-  const INTERVAL = 1 / MAX_HZ
-  const acc = useRef(0)
-  useFrame((state, delta) => {
-    acc.current += delta
-    if (acc.current < INTERVAL) return
-    acc.current -= INTERVAL
+  useThrottledFrame((state) => {
     if (!isLoaded || isWorkerBusy.current) return;
-    
+
     isWorkerBusy.current = true;
-    
+
     const cameraData = {
       pos: { 
         x: state.camera.position.x, 
@@ -137,15 +140,14 @@ function OctreeTest({ websocketRef , octreeWorkerRef , isWorkerBusy , position ,
       vmi: [...state.camera.matrixWorldInverse.elements],
       pm: [...state.camera.projectionMatrix.elements],
       aspectRatio: state.camera.aspect,
-      maxLOD: octreeMaxLOD
+      maxLOD: displaySettings.octreeMaxLOD
     };
-    
+
     octreeWorkerRef.current.postMessage({
       type: 'UPDATE',
       payload: cameraData
     });
-    //console.log('ran update')
-  });
+  }, 30);
 
   return (
     <group position={position} rotation={rotation}>
