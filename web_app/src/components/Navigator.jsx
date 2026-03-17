@@ -18,10 +18,9 @@ const Navigator = () => {
         octreeWorkerRef, 
         displaySettings, 
         setDisplaySettings, 
-        sidebarDisplay,
         setSidebarDisplay,
         connected,
-        setReconnectCount,
+        reconnect
     } = useContext(AppContext)
 
     const sendWSMessage = useCallback((action) => {
@@ -33,7 +32,12 @@ const Navigator = () => {
 
     const handleFileLoad = (e) => {
         const file = e.target.files[0];
-        if(file) octreeWorkerRef.current.postMessage({ type: 'LOAD', payload: { file } })
+        if(file) {
+            octreeWorkerRef.current.postMessage({ 
+                type: 'LOAD', 
+                payload: { file } 
+            })
+        }
         e.target.value = null;
     }
 
@@ -41,9 +45,9 @@ const Navigator = () => {
         setSidebarDisplay(
             prev => ({
                 ...prev, 
-                page:'EditViewSelectionsMenu', 
-                show:true, 
-                showDeletionSelection:false
+                page: 'EditViewSelectionsMenu', 
+                show: true, 
+                showDeletionSelection: false
             })
         );
     }
@@ -53,11 +57,6 @@ const Navigator = () => {
             type: 'SAVE', 
             payload: displaySettings.projectName
         })
-    }
-
-    const handleConnectScanner = (e) => {
-        console.log('attempting to reconnect')
-        setReconnectCount(prev=>(prev+1))
     }
 
     const handleClose = (e) => {
@@ -151,7 +150,7 @@ const Navigator = () => {
                     </NavDropdown>
 
                     <NavDropdown title="Network" className="h-100 d-flex align-items-center">
-                        <NavDropdown.Item onClick={handleConnectScanner}>Connect to Scanner</NavDropdown.Item>
+                        <NavDropdown.Item onClick={() => reconnect()}>Connect to Scanner</NavDropdown.Item>
                         <NavDropdown.Divider/>
                         <NavDropdown.Item onClick={() => sendWSMessage('start_scanner')}>Start Scanner</NavDropdown.Item>
                         <NavDropdown.Item onClick={() => sendWSMessage('stop_scanner')}>Stop Scanner</NavDropdown.Item>

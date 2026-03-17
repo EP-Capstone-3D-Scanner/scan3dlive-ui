@@ -1,17 +1,15 @@
 import OctreeManager from '../modules/OctreeModuleRotDelTest.js';
-// emcc -sENVIRONMENT=web -sMALLOC=emmalloc -O3 -flto -msimd128 -msse SourceFiles/EmscriptenMain.cpp SourceFiles/tinyply.cpp SourceFiles/BoundingBox.cpp SourceFiles/Camera.cpp SourceFiles/Points.cpp -I HeaderFiles -o OctreeModuleClearTest.js -sEXPORT_ES6 -sEXPORTED_FUNCTIONS=_malloc,_free -sEXPORTED_RUNTIME_METHODS=HEAPF32,HEAPU32,HEAPU8 -sINITIAL_MEMORY=2048MB -sALLOW_MEMORY_GROWTH=1 -sASSERTIONS=1
+
 const BYTES_PER_POINT = 16;
 const FLOATS_PER_POINT = 4;
-let OctreeHelper = null;
+const MAX_POINTS = 6000000;
+const MEMORY_BYTES = MAX_POINTS * BYTES_PER_POINT;
 
+let OctreeHelper = null;
 let lastVertexCount = 0;
 let previousMaxLOD = -1;
 let doneDeletion = false;
-let maxPointsCapacity = 6000000;
-const byteSize = maxPointsCapacity * BYTES_PER_POINT;
-let sharedBuffer;
-let sharedFloat32View;
-let tm = 0;
+let sharedBuffer, sharedFloat32View;
 
 OctreeManager({print: console.log})
 .then((module) => {
@@ -25,7 +23,7 @@ self.onmessage = async (e) => {
 
   if (type === 'INIT') {
     try {
-      sharedBuffer = new SharedArrayBuffer(byteSize);
+      sharedBuffer = new SharedArrayBuffer(MEMORY_BYTES);
       console.log(sharedBuffer.byteLength)
       sharedFloat32View = new Float32Array(sharedBuffer);
       self.postMessage({ 
@@ -33,7 +31,7 @@ self.onmessage = async (e) => {
         payload: { sharedBuffer } 
       });
     } catch (err) {
-      console.error("Worker Init Error:", err);
+      console.error("[WEB WORKER] Worker Init Error:", err);
     }
   }
 
@@ -42,14 +40,14 @@ self.onmessage = async (e) => {
       const arrayBuffer = await payload.file.arrayBuffer();
       const dataPtr = OctreeHelper._malloc(arrayBuffer.byteLength);
       OctreeHelper.HEAPU8.set(new Uint8Array(arrayBuffer), dataPtr);
-      maxPointsCapacity = OctreeHelper._loadPointsXYZFromBinaryPLY(dataPtr, arrayBuffer.byteLength); // TODO: Update this function to return the number of points
+      MAX_POINTS = OctreeHelper._loadPointsXYZFromBinaryPLY(dataPtr, arrayBuffer.byteLength); // TODO: Update this function to return the number of points
       OctreeHelper._free(dataPtr);
       self.postMessage({ 
         type: 'LOAD_DONE', 
       });
     } 
     catch (err) {
-      console.error("Worker Load File Error:", err);
+      console.error("[WEB WORKER] Worker Load File Error:", err);
     }
   }
   
@@ -62,7 +60,7 @@ self.onmessage = async (e) => {
     OctreeHelper._free(dataPtr);
     const end = performance.now()
     //console.log(`Octree Insertion took ${end-start} milliseconds`)
-    console.log(`Time elapsed ${end-start} milliseconds`)
+    console.log(`[WEB WORKER] Octree insertion took ${end-start} milliseconds`)
     
     self.postMessage({
       type: 'INSERT_DONE',
@@ -99,7 +97,7 @@ self.onmessage = async (e) => {
 
   else if (type === 'UPDATE') {
     if (!OctreeHelper || !sharedFloat32View) return; // Ensure view exists
-    const { pos, vmi, pm, aspectRatio, maxLOD } = payload; 
+    const { pos , vmi , pm , aspectRatio , maxLOD } = payload; 
     OctreeHelper._updateOctreeCamera(
       pos.x, pos.y, pos.z,
       vmi[0], vmi[4], vmi[8], vmi[12], 
@@ -115,7 +113,7 @@ self.onmessage = async (e) => {
 
     const dataNodePtr = OctreeHelper._getVisibleOctreeNodes(maxLOD, 1);
     const dataBytes = OctreeHelper.HEAPU32[dataNodePtr >> 2];
-    const vertexCount = Math.min(Math.floor(dataBytes / BYTES_PER_POINT), maxPointsCapacity);
+    const vertexCount = Math.min(Math.floor(dataBytes / BYTES_PER_POINT), MAX_POINTS);
     console.log(vertexCount) 
     const diff = Math.abs(vertexCount - lastVertexCount);
     const threshold = lastVertexCount / 25;
@@ -150,15 +148,19 @@ self.onmessage = async (e) => {
       const fileData = new Uint8Array(dataBytes);
       const fileName = payload.fileName;
       fileData.set(OctreeHelper.HEAPU8.subarray(startIndex, startIndex + dataBytes));
-      self.postMessage({ type: 'SAVE_DONE', payload: fileData, fileName: fileName});
+      self.postMessage({ 
+        type: 'SAVE_DONE', 
+        payload: fileData, 
+        fileName: fileName
+      });
       OctreeHelper._free(dataNodePtr);
   }
 
   else if (type === 'SAVE_AS_VOL') {
     console.log(payload)
-    const position = payload['position']
-    const size = payload['size']
-    const rot = payload['rotation']
+    const position = payload.position;
+    const size = payload.size;
+    const rot = payload.rotation;
     const minX = position[0]-size[0]/2;
     const minY = position[1]-size[1]/2;
     const minZ = position[2]-size[2]/2;
@@ -174,8 +176,11 @@ self.onmessage = async (e) => {
     const fileData = new Uint8Array(dataBytes);
     const fileName = payload.fileName;
     fileData.set(OctreeHelper.HEAPU8.subarray(startIndex, startIndex + dataBytes));
-    self.postMessage({ type: 'SAVE_DONE', payload: fileData, fileName: fileName });
+    self.postMessage({ 
+      type: 'SAVE_DONE', 
+      payload: fileData, 
+      fileName: fileName 
+    });
     OctreeHelper._free(dataNodePtr);
-    console.log('ran')
   }
 };

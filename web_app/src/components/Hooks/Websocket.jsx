@@ -5,29 +5,37 @@ function useWebsocketClient({url, workerRef, isWorkerBusy}) {
     const [connected, setConnected] = useState(false);
     const [reconnectCount, setReconnectCount] = useState(0);
 
+    const reconnect = () => {
+        console.log('[WEBSOCKET] WebSocket attempting to reconnect')
+        setReconnectCount(prev=>(prev+1))
+    }
+
     useEffect(() => {
         webSocketRef.current = new WebSocket(url);
         webSocketRef.current.binaryType = "arraybuffer";
         
         webSocketRef.current.onerror = (error) => {
-            console.log('Websocket failed to connect')
+            console.log('[WEBSOCKET] Websocket failed to connect')
             setConnected(false)
         }
 
         webSocketRef.current.onopen = () => {
-            console.log("WebSocket connection established");
+            console.log("[WEBSOCKET] WebSocket connection established");
             setConnected(true)
         }
 
         webSocketRef.current.onclose = () => {
-            console.log("WebSocket connection closed");
+            console.log("[WEBSOCKET] WebSocket connection closed");
             setConnected(false)
         }
 
         webSocketRef.current.onmessage = (event) => {
             if(workerRef) { // && !isWorkerBusy.current
                 isWorkerBusy.current = true;
-                workerRef.current.postMessage({type: 'INSERT', payload: event.data})
+                workerRef.current.postMessage({
+                    type: 'INSERT', 
+                    payload: event.data
+                })
             }
         }
 
@@ -36,7 +44,7 @@ function useWebsocketClient({url, workerRef, isWorkerBusy}) {
         };
     }, [url, connected, reconnectCount])
 
-    return {webSocketRef, connected, setReconnectCount}
+    return {webSocketRef, connected, reconnect}
 }
 
 export default useWebsocketClient;
