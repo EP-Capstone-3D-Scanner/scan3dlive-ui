@@ -1,8 +1,8 @@
-import OctreeManager from '../modules/OctreeModuleRotDelTest.js';
+import OctreeManager from '../modules/OctreeModuleSpeedUpTest.js';
 
 const BYTES_PER_POINT = 16;
 const FLOATS_PER_POINT = 4;
-const MAX_POINTS = 6000000;
+let MAX_POINTS = 20000000;
 const MEMORY_BYTES = MAX_POINTS * BYTES_PER_POINT;
 
 let OctreeHelper = null;
@@ -36,8 +36,10 @@ self.onmessage = async (e) => {
   }
 
   else if (type === 'LOAD') {
+    console.log('[WEB WORKER] Starting to load file')
     try {
       const arrayBuffer = await payload.file.arrayBuffer();
+      console.log(OctreeHelper)
       const dataPtr = OctreeHelper._malloc(arrayBuffer.byteLength);
       OctreeHelper.HEAPU8.set(new Uint8Array(arrayBuffer), dataPtr);
       MAX_POINTS = OctreeHelper._loadPointsXYZFromBinaryPLY(dataPtr, arrayBuffer.byteLength); // TODO: Update this function to return the number of points

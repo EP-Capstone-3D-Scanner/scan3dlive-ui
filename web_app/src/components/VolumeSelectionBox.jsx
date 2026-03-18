@@ -11,6 +11,7 @@ export const VolumeSelectionBox = ({
   color,
   deletionSelection,
   setDeletionSelection,
+  pushUndoStack,
   focusColor,
   isDeletion,
   showLabel
@@ -158,7 +159,7 @@ export const VolumeSelectionBox = ({
     const finalRot = new THREE.Euler().setFromQuaternion(meshRef.current.quaternion, 'XYZ');
     const finalSize = dragInfo.current ? 
         dragInfo.current.startSize.clone().multiply(meshRef.current.scale) : size.clone();
-
+    pushUndoStack()
     if (isDeletion) {
       setDeletionSelection(prev => ({
         ...prev,

@@ -25,13 +25,16 @@ function OctreeTest({ position , rotation }) {
   const pointsInsertedRef = useRef(false);
 
   useEffect(() => {
+    console.log('effect ran')
       invalidate();
       octreeWorkerRef.current = new OctreeWorker()
+      
       octreeWorkerRef.current.onmessage = (e) => {
         const { type, payload , fileName } = e.data;
 
         if (type === 'READY') {
           octreeWorkerRef.current.postMessage({ type: 'INIT', payload: {} })
+          console.log('ready and done')
         } 
         
         else if (type === 'INIT_DONE') {
@@ -108,8 +111,8 @@ function OctreeTest({ position , rotation }) {
         else if (type === 'SAVE_DONE') {
             const fileData = payload;
             const blob = new Blob([fileData], { type: 'application/octet-stream' });
+            
             const url = URL.createObjectURL(blob);
-
             const link = document.createElement('a');
             link.href = url;
             link.download = (fileName || 'download') + '.ply'; 
@@ -147,7 +150,7 @@ function OctreeTest({ position , rotation }) {
       type: 'UPDATE',
       payload: cameraData
     });
-  }, 30);
+  }, 5);
 
   return (
     <group position={position} rotation={rotation}>

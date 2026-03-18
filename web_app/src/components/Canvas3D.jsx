@@ -28,6 +28,7 @@ function Canvas3D() {
     setDeletionSelection, 
     displaySettings, 
     sidebarDisplay, 
+    pushUndoStack
   } = useContext(AppContext)
 
   const [orbitEnabled, setOrbitEnabled] = useState(true);
@@ -54,6 +55,7 @@ function Canvas3D() {
               setVolumeSelections={setVolumeSelections}
               setOrbitControlsEnabled={setOrbitEnabled} 
               showLabel={displaySettings.showLabels}
+              pushUndoStack={pushUndoStack}
               focusColor="#ffcc00" 
               color="#0088ff"
             />
@@ -68,6 +70,7 @@ function Canvas3D() {
             deletionSelection={deletionSelection}
             setDeletionSelection={setDeletionSelection}
             setOrbitControlsEnabled={setOrbitEnabled} 
+            pushUndoStack={pushUndoStack}
             focusColor="#ff0000" 
             color="#fd0000"
           />

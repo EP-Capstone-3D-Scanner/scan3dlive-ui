@@ -12,10 +12,12 @@ function DeletionSelectionMenu() {
         deletionSelection,
         setDeletionSelection,
         octreeWorkerRef,
-        isWorkerBusy  
+        isWorkerBusy,
+        pushUndoStack 
     } = useContext(AppContext)
 
     const handleCloseDeletionButton = () => {
+        pushUndoStack()
         setSidebarDisplay({
             ...sidebarDisplay, 
             show:false
@@ -24,7 +26,6 @@ function DeletionSelectionMenu() {
     }
 
     const handleDeleteSelectionButton = () => {
-        setSidebarDisplay({...sidebarDisplay, show:false})
         invalidateCanvas()
         if(octreeWorkerRef) {
             isWorkerBusy.current = true;
@@ -36,6 +37,7 @@ function DeletionSelectionMenu() {
     }
 
     const handlePositionChange = (axisIndex, newValue) => {
+        pushUndoStack()
         const val = parseFloat(newValue)||newValue; 
 
         setDeletionSelection(prev => ({
@@ -47,6 +49,7 @@ function DeletionSelectionMenu() {
     };
 
     const handleSizeChange = (axisIndex, newValue) => {
+        pushUndoStack()
         let val = parseFloat(newValue)||newValue; 
         if(parseFloat(val) && val < 0) {
             val = 0;
@@ -60,6 +63,7 @@ function DeletionSelectionMenu() {
     };
 
     const handleBlur = (property, axisIndex, newValue) => {
+        pushUndoStack()
         let val = parseFloat(newValue)||0; 
         
         if(property == 'size') {

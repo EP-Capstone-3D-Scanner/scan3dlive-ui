@@ -2,6 +2,7 @@ import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import { useContext } from 'react';
 import { AppContext } from '../Contexts/Contexts';
+import { invalidateCanvas } from '../Canvas3D'
 
 
 function UpdateVolumeSelectionMenu() {
@@ -11,9 +12,11 @@ function UpdateVolumeSelectionMenu() {
         setSidebarDisplay, 
         volumeSelections, 
         setVolumeSelections, 
+        pushUndoStack
     } = useContext(AppContext)
 
     const handleCloseVolumeSelectionButton = () => {
+        pushUndoStack()
         if(sidebarDisplay.selectedVolumeNew) {
             const { [sidebarDisplay.selectedVolume]: _ , ...rest } = volumeSelections;
             setVolumeSelections(rest);
@@ -32,6 +35,7 @@ function UpdateVolumeSelectionMenu() {
     }
 
     const handleDoneVolumeSelectionButton = () => {
+        pushUndoStack()
         setSidebarDisplay({
             ...sidebarDisplay, 
             page:'EditVolumeSelectionsMenu', 
@@ -63,6 +67,7 @@ function UpdateVolumeSelectionMenu() {
     }
 
     const handlePositionChange = (axisIndex, newValue) => {
+        pushUndoStack()
         const val = parseFloat(newValue)||newValue; 
         const volumeId = sidebarDisplay.selectedVolume;
 
@@ -77,6 +82,7 @@ function UpdateVolumeSelectionMenu() {
     };
 
     const handleSizeChange = (axisIndex, newValue) => {
+        pushUndoStack()
         let val = parseFloat(newValue)||newValue; 
         if(parseFloat(val) && val < 0) {
             val = 0;
@@ -94,6 +100,7 @@ function UpdateVolumeSelectionMenu() {
     };
 
     const handleBlur = (property, axisIndex, newValue) => {
+        pushUndoStack()
         let val = parseFloat(newValue)||0; 
         const volumeId = sidebarDisplay.selectedVolume;
         if(property == 'size') {

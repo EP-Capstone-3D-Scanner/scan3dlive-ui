@@ -120,7 +120,7 @@ function FormatDisplayMenu() {
                         <Form.Range
                             defaultValue={displaySettings.octreeMaxLOD}
                             min={1}
-                            max={10}
+                            max={15}
                             step={1}
                             onChange={(e)=>updateSetting(e, 'octreeMaxLOD')}
                         />

@@ -1,7 +1,8 @@
 import { useState , useEffect , useRef } from "react";
 
 function useWebsocketClient({url, workerRef, isWorkerBusy}) {
-    const webSocketRef = useRef(null);
+
+    const websocketRef = useRef(null);
     const [connected, setConnected] = useState(false);
     const [reconnectCount, setReconnectCount] = useState(0);
 
@@ -11,26 +12,26 @@ function useWebsocketClient({url, workerRef, isWorkerBusy}) {
     }
 
     useEffect(() => {
-        webSocketRef.current = new WebSocket(url);
-        webSocketRef.current.binaryType = "arraybuffer";
+        websocketRef.current = new WebSocket(url);
+        websocketRef.current.binaryType = "arraybuffer";
         
-        webSocketRef.current.onerror = (error) => {
+        websocketRef.current.onerror = (error) => {
             console.log('[WEBSOCKET] Websocket failed to connect')
             setConnected(false)
         }
 
-        webSocketRef.current.onopen = () => {
+        websocketRef.current.onopen = () => {
             console.log("[WEBSOCKET] WebSocket connection established");
             setConnected(true)
         }
 
-        webSocketRef.current.onclose = () => {
+        websocketRef.current.onclose = () => {
             console.log("[WEBSOCKET] WebSocket connection closed");
             setConnected(false)
         }
 
-        webSocketRef.current.onmessage = (event) => {
-            if(workerRef) { // && !isWorkerBusy.current
+        websocketRef.current.onmessage = (event) => {
+            if(workerRef.current) { // && !isWorkerBusy.current
                 isWorkerBusy.current = true;
                 workerRef.current.postMessage({
                     type: 'INSERT', 
@@ -40,11 +41,11 @@ function useWebsocketClient({url, workerRef, isWorkerBusy}) {
         }
 
         return () => {
-            webSocketRef.current.close();
+            websocketRef.current.close();
         };
-    }, [url, connected, reconnectCount])
+    }, [url, reconnectCount])
 
-    return {webSocketRef, connected, reconnect}
+    return {websocketRef, connected, reconnect}
 }
 
 export default useWebsocketClient;

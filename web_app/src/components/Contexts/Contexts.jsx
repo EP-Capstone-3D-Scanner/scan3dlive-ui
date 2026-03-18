@@ -1,5 +1,6 @@
 import { useState, useRef , createContext } from 'react'
 import useWebSocketClient from '../Hooks/Websocket';
+import useUndoRedo from '../Hooks/UndoRedo';
 
 export const AppContext = createContext(null);
 
@@ -38,10 +39,20 @@ export const AppProvider = ({children}) => {
     })
 
     const { websocketRef, connected , reconnect } = useWebSocketClient({
-        url: "wss://192.168.2.15:8001", 
+        url: "wss://localhost:8001", //wss://192.168.2.15:8001 wss://localhost:8001 wss://10.6.95.47:8001
         workerRef: octreeWorkerRef, 
         isWorkerBusy: isWorkerBusy
     }); 
+
+    const { pushUndoStack } = useUndoRedo({
+        volumeSelections,
+        setVolumeSelections,
+        deletionSelection,
+        setDeletionSelection,
+        sidebarDisplay,
+        setSidebarDisplay
+    })
+    
 
     return (
         <AppContext.Provider 
@@ -58,12 +69,11 @@ export const AppProvider = ({children}) => {
                 connected, 
                 reconnect, 
                 octreeWorkerRef, 
-                isWorkerBusy
+                isWorkerBusy,
+                pushUndoStack
             }}>
             {children}
         </AppContext.Provider>
     );
 }
 
-    //const websocketRef = useWebSocketClient({urlxs : "wss://localhost:8001", scannerReconnecting : sidebarDisplay['scannerReconnecting'] , workerRef : octreeWorkerRef, isWorkerBusy:isWorkerBusy, setSidebarDisplay: setSidebarDisplay});
-    //const websocketRef = useWebSocketClient({url: "wss://10.6.95.47:8001", scannerReconnecting : sidebarDisplay['scannerReconnecting'] , workerRef : octreeWorkerRef, isWorkerBusy:isWorkerBusy, setSidebarDisplay: setSidebarDisplay});
