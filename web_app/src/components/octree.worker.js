@@ -185,4 +185,47 @@ self.onmessage = async (e) => {
     });
     OctreeHelper._free(dataNodePtr);
   }
+
+  else if (type === 'SEGMENT') {
+      if (!OctreeHelper) return;
+       
+      const dataNodePtr = OctreeHelper._getOctreeBinaryPLY();
+      const dataBytes = OctreeHelper.HEAPU32[dataNodePtr >> 2];
+      const startIndex = dataNodePtr + 4;
+      const fileData = new Uint8Array(dataBytes);
+      const fileName = payload.fileName;
+      fileData.set(OctreeHelper.HEAPU8.subarray(startIndex, startIndex + dataBytes));
+      
+      try {
+        
+        console.log("Uploading file to server...");
+
+        const response = await fetch('http://localhost:5000/process-ply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/octet-stream' },
+            body: fileData
+        });
+
+        OctreeHelper._free(dataNodePtr);
+
+        if (!response.ok) throw new Error('Server upload failed');
+
+        const resultBlob = await response.blob();
+        const resultData = new Uint8Array(await resultBlob.arrayBuffer());
+        console.log('done')
+        /*
+        // Send back to main thread for download
+        self.postMessage({ 
+            type: 'SAVE_DONE', 
+            payload: resultData, 
+            fileName: 'processed_' + fileName 
+        });
+        */
+      } 
+      catch (error) {
+          console.error("Worker Error:", error);
+          self.postMessage({ type: 'ERROR', message: error.message });
+          OctreeHelper._free(dataNodePtr);
+      }
+  }
 };

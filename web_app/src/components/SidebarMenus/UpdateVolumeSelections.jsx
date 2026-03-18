@@ -12,11 +12,11 @@ function UpdateVolumeSelectionMenu() {
         setSidebarDisplay, 
         volumeSelections, 
         setVolumeSelections, 
-        pushUndoStack
+        userHistory
     } = useContext(AppContext)
 
     const handleCloseVolumeSelectionButton = () => {
-        pushUndoStack()
+        userHistory.pushUndoStack()
         if(sidebarDisplay.selectedVolumeNew) {
             const { [sidebarDisplay.selectedVolume]: _ , ...rest } = volumeSelections;
             setVolumeSelections(rest);
@@ -35,7 +35,7 @@ function UpdateVolumeSelectionMenu() {
     }
 
     const handleDoneVolumeSelectionButton = () => {
-        pushUndoStack()
+        userHistory.pushUndoStack()
         setSidebarDisplay({
             ...sidebarDisplay, 
             page:'EditVolumeSelectionsMenu', 
@@ -67,7 +67,7 @@ function UpdateVolumeSelectionMenu() {
     }
 
     const handlePositionChange = (axisIndex, newValue) => {
-        pushUndoStack()
+        userHistory.pushUndoStack()
         const val = parseFloat(newValue)||newValue; 
         const volumeId = sidebarDisplay.selectedVolume;
 
@@ -82,7 +82,7 @@ function UpdateVolumeSelectionMenu() {
     };
 
     const handleSizeChange = (axisIndex, newValue) => {
-        pushUndoStack()
+        userHistory.pushUndoStack()
         let val = parseFloat(newValue)||newValue; 
         if(parseFloat(val) && val < 0) {
             val = 0;
@@ -100,7 +100,7 @@ function UpdateVolumeSelectionMenu() {
     };
 
     const handleBlur = (property, axisIndex, newValue) => {
-        pushUndoStack()
+        userHistory.pushUndoStack()
         let val = parseFloat(newValue)||0; 
         const volumeId = sidebarDisplay.selectedVolume;
         if(property == 'size') {

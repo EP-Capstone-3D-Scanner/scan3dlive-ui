@@ -39,12 +39,12 @@ export const AppProvider = ({children}) => {
     })
 
     const { websocketRef, connected , reconnect } = useWebSocketClient({
-        url: "wss://localhost:8001", //wss://192.168.2.15:8001 wss://localhost:8001 wss://10.6.95.47:8001
+        url: "wss://10.6.95.47:8001", //wss://192.168.2.15:8001 wss://localhost:8001 wss://10.6.95.47:8001
         workerRef: octreeWorkerRef, 
         isWorkerBusy: isWorkerBusy
     }); 
 
-    const { pushUndoStack } = useUndoRedo({
+    const { userHistory } = useUndoRedo({
         volumeSelections,
         setVolumeSelections,
         deletionSelection,
@@ -70,7 +70,7 @@ export const AppProvider = ({children}) => {
                 reconnect, 
                 octreeWorkerRef, 
                 isWorkerBusy,
-                pushUndoStack
+                userHistory
             }}>
             {children}
         </AppContext.Provider>

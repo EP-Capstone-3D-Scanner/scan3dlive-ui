@@ -13,11 +13,11 @@ export function EditVolumeSelectionsMenu() {
         setSidebarDisplay, 
         volumeSelections, 
         setVolumeSelections, 
-        pushUndoStack
+        userHistory
     } = useContext(AppContext)
 
     const closeSidebar = () => {
-        pushUndoStack()
+        userHistory.pushUndoStack()
         setSidebarDisplay({
             ...sidebarDisplay, 
             show:false
@@ -27,7 +27,7 @@ export function EditVolumeSelectionsMenu() {
     const handleAddVolumeSelectionButton = () => {
         const keys = Object.keys(volumeSelections);
         const maxVolumeId = keys.length == 0? 1 : (Math.max(...keys) + 1);
-        pushUndoStack()
+        userHistory.pushUndoStack()
         setVolumeSelections({
             ...volumeSelections, 
             [maxVolumeId]:{
@@ -47,7 +47,7 @@ export function EditVolumeSelectionsMenu() {
     }
 
     const handleEditVolumeSelectionButton = (volumeId) => {
-        pushUndoStack()
+        userHistory.pushUndoStack()
         setSidebarDisplay({
             ...sidebarDisplay, 
             selectedVolume:[volumeId], 
@@ -58,7 +58,7 @@ export function EditVolumeSelectionsMenu() {
 
     const handleDeleteVolumeSelectionButton = (volumeId) => {
         const { [volumeId]: _ , ...rest } = volumeSelections;
-        pushUndoStack()
+        userHistory.pushUndoStack()
         setVolumeSelections(rest);
         setSidebarDisplay({
             ...sidebarDisplay, 

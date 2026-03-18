@@ -20,7 +20,8 @@ const Navigator = () => {
         setDisplaySettings, 
         setSidebarDisplay,
         connected,
-        reconnect
+        reconnect,
+        userHistory
     } = useContext(AppContext)
 
     const sendWSMessage = useCallback((action) => {
@@ -55,6 +56,13 @@ const Navigator = () => {
     const handleFileSave = (e) => {
         octreeWorkerRef.current.postMessage({ 
             type: 'SAVE', 
+            payload: displaySettings.projectName
+        })
+    }
+    
+    const handleSegment = (e) => {
+        octreeWorkerRef.current.postMessage({ 
+            type: 'SEGMENT', 
             payload: displaySettings.projectName
         })
     }
@@ -128,14 +136,14 @@ const Navigator = () => {
                     </NavDropdown>
 
                     <NavDropdown title="Edit" className="h-100 d-flex align-items-center">
-                        <NavDropdown.Item>Undo</NavDropdown.Item>
-                        <NavDropdown.Item>Redo</NavDropdown.Item>
+                        <NavDropdown.Item onClick={() => userHistory.undo()}>Undo</NavDropdown.Item>
+                        <NavDropdown.Item onClick={() => userHistory.redo()}>Redo</NavDropdown.Item>
                         <NavDropdown.Divider/>
                         <NavDropdown.Item>Cut</NavDropdown.Item>
                         <NavDropdown.Item>Copy</NavDropdown.Item>
                         <NavDropdown.Item>Paste</NavDropdown.Item>
                         <NavDropdown.Divider/>
-                        <NavDropdown.Item>Segment</NavDropdown.Item>
+                        <NavDropdown.Item onClick={handleSegment}>Segment</NavDropdown.Item>
                     </NavDropdown>
 
                     <NavDropdown title="View" className="h-100 d-flex align-items-center">

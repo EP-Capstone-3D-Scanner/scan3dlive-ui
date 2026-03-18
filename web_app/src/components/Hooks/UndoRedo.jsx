@@ -73,13 +73,15 @@ function useUndoRedo({ volumeSelections, setVolumeSelections, deletionSelection,
     }, [undo, redo]);
 
     // Return the functions so they can be drilled down to child components
-    return {
-        //undo,
-        //redo,
+    const userHistory = {
+        undo,
+        redo,
         pushUndoStack,
         //clearUndoStack,
         //clearRedoStack
-    };
+    }
+
+    return {userHistory};
 }
 
 export default useUndoRedo;

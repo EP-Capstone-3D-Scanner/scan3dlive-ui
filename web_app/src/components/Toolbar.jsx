@@ -8,7 +8,8 @@ const Toolbar = () => {
     
     const {
         sidebarDisplay, 
-        setSidebarDisplay
+        setSidebarDisplay,
+        userHistory
     } = useContext(AppContext)
 
     const handleVolumeSelectionButtonClick = () => {
@@ -66,8 +67,8 @@ const Toolbar = () => {
             <ToolbarButton onClick={handleVolumeSelectionButtonClick} icon="cube-icon.svg" title="Volume Selection"></ToolbarButton>
             <ToolbarButton onClick={handleZoomInButtonClick} icon="zoom-in-icon.svg" title="Zoom In"></ToolbarButton>
             <ToolbarButton onClick={handleZoomOutButtonClick} icon="zoom-out-icon.svg" title="Zoom Out"></ToolbarButton>
-            <ToolbarButton onClick={setSidebarDisplay} icon="reply-arrow-icon.svg" title="Undo"></ToolbarButton>
-            <ToolbarButton onClick={setSidebarDisplay} icon="forward-arrow-icon.svg" title="Redo"></ToolbarButton>
+            <ToolbarButton onClick={() => userHistory.undo()} icon="reply-arrow-icon.svg" title="Undo"></ToolbarButton>
+            <ToolbarButton onClick={() => userHistory.redo()} icon="forward-arrow-icon.svg" title="Redo"></ToolbarButton>
             <ToolbarButton onClick={handleDeleteButtonClick} icon="recycle-bin-icon.svg" title="Delete"></ToolbarButton>
             <Form.Select
                 id="PointLabelSelect" 
