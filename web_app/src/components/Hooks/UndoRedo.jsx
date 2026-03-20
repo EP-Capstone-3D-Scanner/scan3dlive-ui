@@ -22,6 +22,9 @@ function useUndoRedo({ volumeSelections, setVolumeSelections, deletionSelection,
     const pushUndoStack = useCallback((stateToSave) => {
         const state = stateToSave || currentStateRef.current;
         undoStackRef.current.push(state);
+            if (undoStackRef.current.length > 10) {
+                undoStackRef.current.shift();
+            }
         clearRedoStack();
     }, [clearRedoStack]);
 

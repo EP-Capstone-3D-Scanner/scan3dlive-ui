@@ -189,7 +189,7 @@ export const VolumeSelectionBox = ({
     <group>
       <group ref={labelRef}>
         <Html distanceFactor={10} transform sprite center> 
-          <div className="annotation bg-dark text-white px-2 py-1 rounded shadow-sm" 
+          <div onContextMenu={(e) => e.preventDefault()} className="annotation bg-dark text-white px-2 py-1 rounded shadow-sm" 
                style={{ display: (isDeletion||!showLabel)? 'none':'block', fontSize: '14px', pointerEvents: 'none', whiteSpace: 'nowrap' }}>
             {currentData.name}
           </div>
