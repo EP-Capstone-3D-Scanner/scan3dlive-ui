@@ -139,7 +139,7 @@ function OctreeTest({ position , rotation }) {
           isWorkerBusy.current = false;
       }
     }
-    
+
     return () => {octreeWorkerRef.current.terminate()}
   }, [])
 
@@ -170,7 +170,7 @@ function OctreeTest({ position , rotation }) {
   return (
     <group position={position} rotation={rotation}>
       <points geometry={geometryRef.current} dispose={null} frustumCulled={false}>
-        <pointsMaterial size={0.02} sizeAttenuation vertexColors={true} />
+        <pointsMaterial size={displaySettings.pointSize} sizeAttenuation vertexColors={true} />
       </points>
     </group>
   )

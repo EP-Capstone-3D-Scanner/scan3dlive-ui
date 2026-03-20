@@ -30,6 +30,7 @@ export const AppProvider = ({children}) => {
         showLabels: true,
         skyboxPreset: 'city',
         octreeMaxLOD: 1,
+        pointSize: 0.02,
         backgroundColor: '#000000',
         backgroundVisible: false,
         visibleModal: '',

@@ -81,7 +81,7 @@ function FormatDisplayMenu() {
                         <Form.Check
                             className="align-items-center d-flex flex-row gap-2"
                             label="Skybox"
-                            name="gridSelectCheckbox"
+                            name="skyboxSelectCheckbox"
                             type="checkbox"
                             checked={displaySettings.skyboxVisible}
                             onChange={()=>toggleSetting('skyboxVisible')}
@@ -116,7 +116,7 @@ function FormatDisplayMenu() {
                     />
 
                     <div className="d-flex flex-row gap-3 my-1">
-                        <Form.Label>LOD</Form.Label>
+                        <Form.Label className="w-50">LOD: {displaySettings.octreeMaxLOD}</Form.Label>
                         <Form.Range
                             defaultValue={displaySettings.octreeMaxLOD}
                             min={1}
@@ -125,7 +125,18 @@ function FormatDisplayMenu() {
                             onChange={(e)=>updateSetting(e, 'octreeMaxLOD')}
                         />
                     </div>
-                </Form.Group>  
+
+                    <div className="d-flex flex-row gap-3 my-1">
+                        <Form.Label className="w-50">Point Size: {displaySettings.pointSize}</Form.Label>
+                        <Form.Range
+                            defaultValue={displaySettings.pointSize}
+                            min={0.01}
+                            max={0.05}
+                            step={0.01}
+                            onChange={(e)=>updateSetting(e, 'pointSize')}
+                        />
+                    </div>
+                </Form.Group>    
             </Form>
             
             <div className="d-flex flex-row gap-2 mx-3 my-2">   
