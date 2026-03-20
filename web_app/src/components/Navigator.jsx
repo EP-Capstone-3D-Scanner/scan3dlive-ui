@@ -63,7 +63,7 @@ const Navigator = () => {
     const handleSegment = (e) => {
         octreeWorkerRef.current.postMessage({ 
             type: 'SEGMENT', 
-            payload: displaySettings.projectName
+            payload: {}
         })
     }
 

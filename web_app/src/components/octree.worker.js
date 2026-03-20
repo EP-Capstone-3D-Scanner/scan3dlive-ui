@@ -39,7 +39,6 @@ self.onmessage = async (e) => {
     console.log('[WEB WORKER] Starting to load file')
     try {
       const arrayBuffer = await payload.file.arrayBuffer();
-      console.log(OctreeHelper)
       const dataPtr = OctreeHelper._malloc(arrayBuffer.byteLength);
       OctreeHelper.HEAPU8.set(new Uint8Array(arrayBuffer), dataPtr);
       MAX_POINTS = OctreeHelper._loadPointsXYZFromBinaryPLY(dataPtr, arrayBuffer.byteLength); // TODO: Update this function to return the number of points
@@ -193,7 +192,6 @@ self.onmessage = async (e) => {
       const dataBytes = OctreeHelper.HEAPU32[dataNodePtr >> 2];
       const startIndex = dataNodePtr + 4;
       const fileData = new Uint8Array(dataBytes);
-      const fileName = payload.fileName;
       fileData.set(OctreeHelper.HEAPU8.subarray(startIndex, startIndex + dataBytes));
       
       try {
@@ -210,17 +208,19 @@ self.onmessage = async (e) => {
 
         if (!response.ok) throw new Error('Server upload failed');
 
+        OctreeHelper._clearOctree()
         const resultBlob = await response.blob();
-        const resultData = new Uint8Array(await resultBlob.arrayBuffer());
-        console.log('done')
-        /*
-        // Send back to main thread for download
+        const resultBuffer = await resultBlob.arrayBuffer();
+        console.log(resultBuffer)
+        const resultPtr = OctreeHelper._malloc(resultBuffer.byteLength);
+        OctreeHelper.HEAPU8.set(new Uint8Array(resultBuffer), resultPtr);
+        MAX_POINTS = OctreeHelper._loadPointsXYZFromBinaryPLY(resultPtr, resultBuffer.byteLength); // TODO: Update this function to return the number of points
+        OctreeHelper._free(resultPtr);
+        
         self.postMessage({ 
-            type: 'SAVE_DONE', 
-            payload: resultData, 
-            fileName: 'processed_' + fileName 
+            type: 'SEGMENT_DONE', 
         });
-        */
+        
       } 
       catch (error) {
           console.error("Worker Error:", error);
