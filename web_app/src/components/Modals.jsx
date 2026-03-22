@@ -201,7 +201,21 @@ export function SaveAsModal() {
         saveAsType: 'All Data',
     });
 
-    const pointTypes = ['Beam', 'Board', 'Bookcase', 'Ceiling', 'Chair', 'Column', 'Door', 'Floor', 'Sofa', 'Table', 'Wall', 'Window', 'Clutter'];
+    const pointTypes = {
+        '0': 'Ceiling',
+        '1': 'Floor',
+        '2': 'Wall',
+        '3': 'Beam',
+        '4': 'Column',
+        '5': 'Window',
+        '6': 'Door',
+        '7': 'Chair',
+        '8': 'Table',
+        '9': 'Bookcase',
+        '10': 'Sofa',
+        '11': 'Board',
+        '12': 'Clutter'
+    }
     const [items, setItems] = useState([]);
 
     useEffect(() => {
@@ -227,12 +241,10 @@ export function SaveAsModal() {
             }));
         } 
         else if (saveAsSettings.saveAsType === 'Point Type') {
-            const points = pointTypes.map(
-                type => ({ 
-                    label: type, 
-                    value: type 
-                })
-            );
+            const points = Object.entries(pointTypes || {}).map(([id, pointLabel]) => ({ 
+                label: pointLabel, 
+                value: id 
+            }));
             setItems(points);
             setSaveAsSettings(prev => ({ 
                 ...prev, 
@@ -266,7 +278,8 @@ export function SaveAsModal() {
             if (saveAsSettings.saveAsType === 'All Data') {
                 octreeWorkerRef.current.postMessage({ 
                     type: 'SAVE', 
-                    payload: { 
+                    payload: {
+                        pointType: 255, // 255 = save everything
                         fileName: saveAsSettings.saveAsName
                     } 
                 });
@@ -284,6 +297,15 @@ export function SaveAsModal() {
                     type: 'SAVE_AS_VOL', 
                     payload: { 
                         ...volumeSelections[volumeId], 
+                        fileName: saveAsSettings.saveAsName
+                    } 
+                });
+            }
+            else if (saveAsSettings.saveAsType == 'Point Type') {
+                octreeWorkerRef.current.postMessage({ 
+                    type: 'SAVE', 
+                    payload: { 
+                        pointType: parseInt(saveAsSettings.saveAsSelection),
                         fileName: saveAsSettings.saveAsName
                     } 
                 });

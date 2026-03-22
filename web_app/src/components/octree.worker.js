@@ -1,8 +1,8 @@
-import OctreeManager from '../modules/OctreeModuleSpeedUpTest.js';
+import OctreeManager from '../modules/OctreeModuleLabelsTest.js';
 
 const BYTES_PER_POINT = 16;
 const FLOATS_PER_POINT = 4;
-let MAX_POINTS = 20000000;
+let MAX_POINTS = 6000000;
 const MEMORY_BYTES = MAX_POINTS * BYTES_PER_POINT;
 
 let OctreeHelper = null;
@@ -90,6 +90,7 @@ self.onmessage = async (e) => {
 
   else if (type == 'CLEAR') {
     OctreeHelper._clearOctree()
+    OctreeHelper._setOctreeSelectedLabel(255);
     self.postMessage({
       type: 'CLEAR_DONE',
     });
@@ -140,9 +141,15 @@ self.onmessage = async (e) => {
     }
     OctreeHelper._free(dataNodePtr);
   }
+  
+  else if (type == 'POINT_TYPE') {
+    OctreeHelper._setOctreeSelectedLabel(payload.pointType);
+  }
 
   else if (type === 'SAVE') {
       if (!OctreeHelper) return;
+      const currentType = OctreeHelper._getOctreeSelectedLabel();
+      OctreeHelper._setOctreeSelectedLabel(payload.pointType);
       const dataNodePtr = OctreeHelper._getOctreeBinaryPLY();
       const dataBytes = OctreeHelper.HEAPU32[dataNodePtr >> 2];
       const startIndex = dataNodePtr + 4;
@@ -155,6 +162,7 @@ self.onmessage = async (e) => {
         fileName: fileName
       });
       OctreeHelper._free(dataNodePtr);
+      OctreeHelper._setOctreeSelectedLabel(currentType);
   }
 
   else if (type === 'SAVE_AS_VOL') {

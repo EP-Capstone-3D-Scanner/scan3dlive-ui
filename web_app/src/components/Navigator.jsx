@@ -68,6 +68,12 @@ const Navigator = () => {
     }
 
     const handleClose = (e) => {
+        setDisplaySettings(
+            prev=>({
+                ...prev, 
+                pointLabelType:'255'
+            })
+        )
         octreeWorkerRef.current.postMessage({ 
             type: 'CLEAR', 
             payload: {} 

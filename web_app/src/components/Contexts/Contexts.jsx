@@ -31,6 +31,7 @@ export const AppProvider = ({children}) => {
         skyboxPreset: 'city',
         octreeMaxLOD: 1,
         pointSize: 0.02,
+        pointLabelType: '',
         backgroundColor: '#000000',
         backgroundVisible: false,
         visibleModal: '',
@@ -54,7 +55,6 @@ export const AppProvider = ({children}) => {
         setSidebarDisplay
     })
     
-
     return (
         <AppContext.Provider 
             value={{

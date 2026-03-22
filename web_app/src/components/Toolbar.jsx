@@ -9,7 +9,10 @@ const Toolbar = () => {
     const {
         sidebarDisplay, 
         setSidebarDisplay,
-        userHistory
+        displaySettings,
+        setDisplaySettings,
+        userHistory,
+        octreeWorkerRef
     } = useContext(AppContext)
 
     const handleVolumeSelectionButtonClick = () => {
@@ -54,12 +57,18 @@ const Toolbar = () => {
 
     const handlePointLabelButtonClick = (e) => {
         const value = e.target.value;
-        setSidebarDisplay(
+        setDisplaySettings(
             prev=>({
                 ...prev, 
                 pointLabelType:value
             })
         )
+        octreeWorkerRef.current.postMessage({ 
+            type: 'POINT_TYPE', 
+            payload: {
+                pointType: parseInt(e.target.value),
+            } 
+        });
     }
 
     return (
@@ -74,25 +83,25 @@ const Toolbar = () => {
                 id="PointLabelSelect" 
                 className="bg-dark text-light ms-2" 
                 style={{ width: '10em', padding: '0.1em 0.6em'}}
-                defaultValue=""
+                value={displaySettings.pointLabelType}
                 onChange={handlePointLabelButtonClick}
                 size="sm"
             >
                 <option disabled hidden value="">Select Option</option>
-                <option value="">None</option>
-                <option value="1">Beam</option>
-                <option value="2">Board</option>
-                <option value="3">Bookcase</option>
-                <option value="4">Ceiling</option>
-                <option value="5">Chair</option>
-                <option value="6">Column</option>
-                <option value="7">Door</option>
-                <option value="8">Floor</option>
-                <option value="9">Sofa</option>
-                <option value="10">Table</option>
-                <option value="11">Wall</option>
-                <option value="12">Window</option>
-                <option value="13">Clutter</option>
+                <option value="255">None</option>
+                <option value="0">Ceiling</option>
+                <option value="1">Floor</option>
+                <option value="2">Wall</option>
+                <option value="3">Beam</option>
+                <option value="4">Column</option>
+                <option value="5">Window</option>
+                <option value="6">Door</option>
+                <option value="7">Chair</option>
+                <option value="8">Table</option>
+                <option value="9">Bookcase</option>
+                <option value="10">Sofa</option>
+                <option value="11">Board</option>
+                <option value="12">Clutter</option>
             </Form.Select>
             
             <button 
