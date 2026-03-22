@@ -36,16 +36,18 @@ PointXYZRGBA::PointXYZRGBA(
     uint8_t r_,
     uint8_t g_,
     uint8_t b_,
-    uint8_t a_
-): PointXYZ(x_, y_, z_), r(r_), g(g_), b(b_), a(a_) {}
+    uint8_t a_,
+    uint8_t label_
+): PointXYZ(x_, y_, z_), r(r_), g(g_), b(b_), a(a_), label(label_) {}
 
 PointXYZRGBA::PointXYZRGBA(
     const PointXYZ& p, 
     uint8_t r_,
     uint8_t g_,
     uint8_t b_,
-    uint8_t a_
-): PointXYZ(p), r(r_), g(g_), b(b_), a(a_) {}
+    uint8_t a_,
+    uint8_t label_
+): PointXYZ(p), r(r_), g(g_), b(b_), a(a_), label(label_) {}
 
 
 std::ostream& operator<<(std::ostream& os, const PointXY& p) { 

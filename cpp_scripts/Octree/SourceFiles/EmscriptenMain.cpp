@@ -27,9 +27,9 @@ uint32_t load_ply(std::vector<PointXYZRGBA>& points, const uint8_t* dataPtr, siz
          throw std::runtime_error("Could not parse PLY header");
     }
 
-    // ... [Your property check logic remains the same] ...
     bool has_x = false, has_y = false, has_z = false;
     bool has_r = false, has_g = false, has_b = false, has_a = false;
+    bool has_pred = false;
     for (auto& e : ply_file.get_elements()) {
         if (e.name == "vertex") {
             for (auto& p : e.properties) {
@@ -40,12 +40,13 @@ uint32_t load_ply(std::vector<PointXYZRGBA>& points, const uint8_t* dataPtr, siz
                 if (p.name == "green") has_g = true;
                 if (p.name == "blue")  has_b = true;
                 if (p.name == "alpha") has_a = true;
+                if (p.name == "pred") has_pred = true;
             }
             break;
         }
     }
 
-    std::shared_ptr<tinyply::PlyData> xyz, rgba;
+    std::shared_ptr<tinyply::PlyData> xyz, rgba, labels;
     if (has_x && has_y && has_z) {
         xyz = ply_file.request_properties_from_element("vertex", { "x", "y", "z" });
     }
@@ -57,7 +58,10 @@ uint32_t load_ply(std::vector<PointXYZRGBA>& points, const uint8_t* dataPtr, siz
         rgba = ply_file.request_properties_from_element("vertex", color_props);
     }
 
-    // FIX: Read from the memory stream, not the file stream
+    if(has_pred) {
+        labels = ply_file.request_properties_from_element("vertex", {"pred"} );
+    }
+
     ply_file.read(mem_stream);
 
     if (xyz) {
@@ -68,6 +72,8 @@ uint32_t load_ply(std::vector<PointXYZRGBA>& points, const uint8_t* dataPtr, siz
         const size_t col_stride = rgba ? tinyply::PropertyTable[rgba->t].stride : 0;
         const uint8_t* col_buf = rgba ? rgba->buffer.get() : nullptr;
         const size_t col_channels = color_props.size();
+        const size_t labels_stride = labels ? tinyply::PropertyTable[labels->t].stride : 0;
+        const uint8_t* labels_buf = labels ? labels->buffer.get() : nullptr;
 
         for (size_t i = 0; i < xyz->count; ++i) {
             float x = tinyply::convert_value<float>(pos_buf + (i * 3 + 0) * pos_stride, xyz->t);
@@ -83,7 +89,12 @@ uint32_t load_ply(std::vector<PointXYZRGBA>& points, const uint8_t* dataPtr, siz
                     a = tinyply::convert_value<uint8_t>(col_buf + (i * col_channels + 3) * col_stride, rgba->t);
                 }
             }
-            points.emplace_back(x, y, z, r, g, b, a);
+
+            uint8_t label = UINT8_MAX;
+            if(labels) {
+                label = tinyply::convert_value<uint8_t>(labels_buf + i  * labels_stride, labels->t);
+            }
+            points.emplace_back(x, y, z, r, g, b, a, label);
         }
         return static_cast<uint32_t>(xyz->count);
     }
@@ -172,33 +183,40 @@ extern "C" {
 
     EMSCRIPTEN_KEEPALIVE
     void insertPoints(float * dataPtr, const int pointCount) {
-        std::vector<PointXYZRGBA> points;
-        points.reserve(pointCount);
-        
-        PointXYZ minPoint(INFINITY, INFINITY, INFINITY);
-        PointXYZ maxPoint(-INFINITY, -INFINITY, -INFINITY);
+        if (pointCount <= 0) return;
+
+        float minX = INFINITY, minY = INFINITY, minZ = INFINITY;
+        float maxX = -INFINITY, maxY = -INFINITY, maxZ = -INFINITY;
+
         for(int i = 0; i < pointCount; i++) {
-            uint8_t* colorPtr = reinterpret_cast<uint8_t*>(&dataPtr[4*i+3]);
-            PointXYZRGBA p(*(dataPtr+4*i+0), *(dataPtr+4*i+1), *(dataPtr+4*i+2), *(colorPtr+0), *(colorPtr+1), *(colorPtr+2), 0);
-            points.push_back(p);
-            if (p.x < minPoint.x) minPoint.x = p.x;
-            if (p.y < minPoint.y) minPoint.y = p.y;
-            if (p.z < minPoint.z) minPoint.z = p.z;
-            if (p.x > maxPoint.x) maxPoint.x = p.x;
-            if (p.y > maxPoint.y) maxPoint.y = p.y;
-            if (p.z > maxPoint.z) maxPoint.z = p.z;
+            float x = dataPtr[4*i+0];
+            float y = dataPtr[4*i+1];
+            float z = dataPtr[4*i+2];
+            
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (z < minZ) minZ = z;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+            if (z > maxZ) maxZ = z;
         }
+
+        PointXYZ minPoint(minX, minY, minZ);
+        PointXYZ maxPoint(maxX, maxY, maxZ);
         
-        std::cout << ModifiableNestedOctree<PointXYZRGBA>::POINT_COUNT << std::endl;
         uint16_t originalRootId = ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID;
         ModifiableNestedOctree<PointXYZRGBA>::expandRoot(BoundingBox(minPoint, maxPoint));
 
-        for(const PointXYZRGBA& p : points) {
+        for(int i = 0; i < pointCount; i++) {
+            uint8_t* colorPtr = reinterpret_cast<uint8_t*>(&dataPtr[4*i+3]);
+            PointXYZRGBA p(
+                dataPtr[4*i+0], dataPtr[4*i+1], dataPtr[4*i+2], 
+                colorPtr[0], colorPtr[1], colorPtr[2], 0
+            );
             ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].insertPoint(p);
         }
-        ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].repairLOD(originalRootId);
-        std::cout << ModifiableNestedOctree<PointXYZRGBA>::POINT_COUNT << std::endl;
 
+        //ModifiableNestedOctree<PointXYZRGBA>::MNO[ModifiableNestedOctree<PointXYZRGBA>::ROOT_ID].repairLOD(originalRootId);
     }
 
     EMSCRIPTEN_KEEPALIVE
@@ -230,6 +248,22 @@ extern "C" {
     EMSCRIPTEN_KEEPALIVE
     void clearOctree() {
         ModifiableNestedOctree<PointXYZRGBA>::clear();
+    }
+
+    EMSCRIPTEN_KEEPALIVE
+    uint32_t getOctreePointCount() {
+        return ModifiableNestedOctree<PointXYZRGBA>::POINT_COUNT;
+    }
+
+    EMSCRIPTEN_KEEPALIVE
+    uint8_t getOctreeSelectedLabel() {
+        return ModifiableNestedOctree<PointXYZRGBA>::SELECTED_LABEL;
+    }
+
+    EMSCRIPTEN_KEEPALIVE
+    void setOctreeSelectedLabel(uint8_t label) {
+        uint8_t selectedLabel = label>12 ? UINT8_MAX : label;
+        ModifiableNestedOctree<PointXYZRGBA>::SELECTED_LABEL = selectedLabel;
     }
 }
 

@@ -54,6 +54,7 @@ struct PointXYZRGBA : PointXYZ {
     uint8_t g = 0;
     uint8_t b = 0;
     uint8_t a = 255;
+    uint8_t label = UINT8_MAX;
 
     /**
      * @brief Constructs a default PointXYZRGB object
@@ -65,7 +66,8 @@ struct PointXYZRGBA : PointXYZ {
         uint8_t r_ = 0,
         uint8_t g_ = 0,
         uint8_t b_ = 0,
-        uint8_t a_ = 255
+        uint8_t a_ = 255,
+        uint8_t label_ = UINT8_MAX
     );
 
     /**
@@ -76,7 +78,8 @@ struct PointXYZRGBA : PointXYZ {
         uint8_t r_ = 0,
         uint8_t g_ = 0,
         uint8_t b_ = 0,
-        uint8_t a_ = 255
+        uint8_t a_ = 255,
+        uint8_t label_ = UINT8_MAX
     );
 };
 

@@ -53,7 +53,8 @@ private:
 
 public:
     inline static uint32_t ROOT_ID = 0;
-    inline static int POINT_COUNT = 0;
+    inline static uint32_t POINT_COUNT = 0;
+    inline static uint8_t SELECTED_LABEL = UINT8_MAX;
     inline static std::vector<ModifiableNestedOctree> MNO;
     static void expandRoot(const BoundingBox& box);
     static void clear();
@@ -250,7 +251,7 @@ void ModifiableNestedOctree<PointT>::deletePoints(const BoundingBox& box, float 
 template <typename PointT>
 void ModifiableNestedOctree<PointT>::insertPoint(const PointT& point) {
     if(!boundingBox.containsPoint(point)) {
-        std::cerr << "Unable to add point to ModifiableNestedOctree instance (Point out of bounds)" << std::endl;
+        //std::cerr << "Unable to add point to ModifiableNestedOctree instance (Point out of bounds)" << std::endl;
         return;
     }
     uint32_t currentNodeId = id;
@@ -353,8 +354,7 @@ uint8_t ModifiableNestedOctree<PointT>::getPointOctant(const PointT& p) const {
 
 template <typename PointT>
 uint16_t ModifiableNestedOctree<PointT>::getPointGridCell(const PointT& p) const {
-    if (!boundingBox.containsPoint(p)) return UINT16_MAX;
- 
+    
     double scaleX = boundingBox.inv_length * GRID_LENGTH;
     double scaleY = boundingBox.inv_width * GRID_LENGTH;
     double scaleZ = boundingBox.inv_height * GRID_LENGTH;
@@ -404,7 +404,7 @@ BoundingBox ModifiableNestedOctree<PointT>::getGridCellBoundingBox(const uint16_
 template <typename PointT>
 void ModifiableNestedOctree<PointT>::expandRoot(const BoundingBox& box) {
     if(MNO.size() == 0) {
-        MNO.reserve(10000);
+        MNO.reserve(25000);
         ModifiableNestedOctree<PointT>::MNO.emplace_back(
             ModifiableNestedOctree<PointT>::ROOT_ID, UINT16_MAX, PointXYZ(-25, -25, -25), PointXYZ(25, 25, 25)
         );
@@ -528,7 +528,7 @@ void ModifiableNestedOctree<PointT>::repairLOD(uint32_t originalRootId) {
 // Need to create function that will automatially serialize points
 template <typename PointT>
 uint8_t* ModifiableNestedOctree<PointT>::serializeForR3F(const Camera& c, int maxDepth, float minPixelSize) const {
-    // 1. First Pass: Collect visible nodes and count total points
+    // Collect visible nodes and count total points
     std::vector<const ModifiableNestedOctree*> visibleNodes;
     size_t totalPoints = 0;
 
@@ -548,7 +548,12 @@ uint8_t* ModifiableNestedOctree<PointT>::serializeForR3F(const Camera& c, int ma
         }
 
         visibleNodes.push_back(currNode);
-        totalPoints += currNode->pointGridMap.size();
+        for (const auto& kv : currNode->pointGridMap) {
+            const PointT& p = kv.second;
+            if((SELECTED_LABEL == UINT8_MAX) || (p.label == SELECTED_LABEL)) {
+                totalPoints += 1;
+            }
+        }
 
         for (int i = 0; i < 8; ++i) {
             uint32_t childIndex = currNode->children[i];
@@ -562,7 +567,7 @@ uint8_t* ModifiableNestedOctree<PointT>::serializeForR3F(const Camera& c, int ma
     //std::cout << "After getting visible nodes total points: " << totalPoints << std::endl;
 
 
-    // 2. Allocate the final buffer immediately
+    //  Allocate the final buffer
     const size_t bytesPerPoint = 16; // 3 floats (12 bytes) + 4 uint8 (4 bytes)
     uint32_t payloadBytes = static_cast<uint32_t>(totalPoints * bytesPerPoint);
     uint32_t totalBytes = sizeof(uint32_t) + payloadBytes;
@@ -573,20 +578,22 @@ uint8_t* ModifiableNestedOctree<PointT>::serializeForR3F(const Camera& c, int ma
     // Write header
     std::memcpy(buffer, &payloadBytes, sizeof(uint32_t));
     
-    // 3. Second Pass: Write data directly to the buffer
+    // Write data into buffer
     uint8_t* writePtr = buffer + sizeof(uint32_t);
 
     for (const auto* node : visibleNodes) {
         for (const auto& kv : node->pointGridMap) {
             const PointT& p = kv.second;
-            *(reinterpret_cast<float*>(writePtr)) = p.x;
-            *(reinterpret_cast<float*>(writePtr + 4)) = p.y;
-            *(reinterpret_cast<float*>(writePtr + 8)) = p.z;
-            writePtr[12] = p.r;
-            writePtr[13] = p.g;
-            writePtr[14] = p.b;
-            writePtr[15] = p.a;
-            writePtr += 16;
+            if((SELECTED_LABEL == UINT8_MAX) || (p.label == SELECTED_LABEL)) {
+                *(reinterpret_cast<float*>(writePtr)) = p.x;
+                *(reinterpret_cast<float*>(writePtr + 4)) = p.y;
+                *(reinterpret_cast<float*>(writePtr + 8)) = p.z;
+                writePtr[12] = p.r;
+                writePtr[13] = p.g;
+                writePtr[14] = p.b;
+                writePtr[15] = p.a;
+                writePtr += 16;
+            }
         }
     }
 
@@ -599,7 +606,12 @@ uint8_t* ModifiableNestedOctree<PointT>::serializeFullOctreeToPLY() {
     // 1. Calculate total point count across all nodes
     size_t totalPoints = 0;
     for (const auto& node : MNO) {
-        totalPoints += node.pointGridMap.size();
+        for (const auto& kv : node.pointGridMap) {
+            const PointT& p = kv.second;
+            if((SELECTED_LABEL == UINT8_MAX) || (p.label == SELECTED_LABEL)) {
+                totalPoints += 1;
+            }
+        }
     }
 
     // 2. Generate the PLY Header
@@ -640,19 +652,20 @@ uint8_t* ModifiableNestedOctree<PointT>::serializeFullOctreeToPLY() {
     for (const auto& node : MNO) {
         for (const auto& kv : node.pointGridMap) {
             const PointT& p = kv.second;
-            
-            // XYZ (12 bytes)
-            *(reinterpret_cast<float*>(writePtr)) = p.x;
-            *(reinterpret_cast<float*>(writePtr + 4)) = p.y;
-            *(reinterpret_cast<float*>(writePtr + 8)) = p.z;
-            
-            // RGBA (4 bytes)
-            writePtr[12] = p.r;
-            writePtr[13] = p.g;
-            writePtr[14] = p.b;
-            writePtr[15] = p.a;
-            
-            writePtr += bytesPerPoint;
+            if((SELECTED_LABEL == UINT8_MAX) || (p.label == SELECTED_LABEL)) {
+                // XYZ (12 bytes)
+                *(reinterpret_cast<float*>(writePtr)) = p.x;
+                *(reinterpret_cast<float*>(writePtr + 4)) = p.y;
+                *(reinterpret_cast<float*>(writePtr + 8)) = p.z;
+                
+                // RGBA (4 bytes)
+                writePtr[12] = p.r;
+                writePtr[13] = p.g;
+                writePtr[14] = p.b;
+                writePtr[15] = p.a;
+                
+                writePtr += bytesPerPoint;
+            }
         }
     }
 
@@ -739,7 +752,7 @@ uint8_t* ModifiableNestedOctree<PointT>::serializePointsInBoxToPLY(const Boundin
         for (const auto& [gridCell, point] : node.pointGridMap) {
             PointXYZ localPoint = inverseTransform(point); 
             
-            if (box.containsPoint(localPoint)) { 
+            if (box.containsPoint(localPoint) && ((SELECTED_LABEL == UINT8_MAX) || (point.label == SELECTED_LABEL))) { 
                 pointsToSerialize.push_back(point);
             }
         }
