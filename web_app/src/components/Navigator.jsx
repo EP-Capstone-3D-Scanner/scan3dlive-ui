@@ -21,7 +21,12 @@ const Navigator = () => {
         setSidebarDisplay,
         connected,
         reconnect,
-        userHistory
+        userHistory,
+        copySelection, 
+        cutSelection,  
+        pasteSelection,
+        activeVolumeId, 
+        clipboardData 
     } = useContext(AppContext)
 
     const sendWSMessage = useCallback((action) => {
@@ -56,7 +61,10 @@ const Navigator = () => {
     const handleFileSave = (e) => {
         octreeWorkerRef.current.postMessage({ 
             type: 'SAVE', 
-            payload: displaySettings.projectName
+            payload: {
+                fileName:displaySettings.projectName,
+                pointType: 13 // save everything
+            }
         })
     }
     
@@ -145,9 +153,9 @@ const Navigator = () => {
                         <NavDropdown.Item onClick={() => userHistory.undo()}>Undo</NavDropdown.Item>
                         <NavDropdown.Item onClick={() => userHistory.redo()}>Redo</NavDropdown.Item>
                         <NavDropdown.Divider/>
-                        <NavDropdown.Item>Cut</NavDropdown.Item>
-                        <NavDropdown.Item>Copy</NavDropdown.Item>
-                        <NavDropdown.Item>Paste</NavDropdown.Item>
+                        <NavDropdown.Item onClick={cutSelection} disabled={!activeVolumeId}>Cut</NavDropdown.Item>
+                        <NavDropdown.Item onClick={copySelection} disabled={!activeVolumeId}>Copy</NavDropdown.Item>
+                        <NavDropdown.Item onClick={pasteSelection} disabled={!clipboardData}>Paste</NavDropdown.Item>
                         <NavDropdown.Divider/>
                         <NavDropdown.Item onClick={handleSegment}>Segment</NavDropdown.Item>
                     </NavDropdown>

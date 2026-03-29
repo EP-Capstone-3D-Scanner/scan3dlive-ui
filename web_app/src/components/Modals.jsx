@@ -342,7 +342,7 @@ export function SaveAsModal() {
             </Modal.Header>
 
             <Modal.Body>
-                <Form>
+                <Form onSubmit={handleSaveAs}>
                     <Form.Group className="mb-3">
                         <Form.Label>Region:</Form.Label>
                         <Form.Select 

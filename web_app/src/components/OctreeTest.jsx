@@ -56,8 +56,10 @@ function OctreeTest({ position , rotation }) {
           colorAttrRef.current.data.setUsage(THREE.DynamicDrawUsage);      
           pointsInsertedRef.current = true;
         }
-        //positionAttrRef.current.data.updateRanges.length = 0;
-        //colorAttrRef.current.data.updateRanges.length = 0;
+        
+        positionAttrRef.current.data.updateRanges.length = 0;
+        colorAttrRef.current.data.updateRanges.length = 0;
+        
         positionAttrRef.current.data.needsUpdate = true;
         colorAttrRef.current.data.needsUpdate = true;
         isWorkerBusy.current = false;  
@@ -84,8 +86,10 @@ function OctreeTest({ position , rotation }) {
         console.log('done deletion')
         isWorkerBusy.current = false; 
         geometryRef.current.setDrawRange(0, 0);
-        //positionAttrRef.current.data.updateRanges.length = 0;
-        //colorAttrRef.current.data.updateRanges.length = 0;
+        
+        positionAttrRef.current.data.updateRanges.length = 0;
+        colorAttrRef.current.data.updateRanges.length = 0;
+        
         positionAttrRef.current.data.needsUpdate = true;
         colorAttrRef.current.data.needsUpdate = true;  
       }
@@ -94,8 +98,10 @@ function OctreeTest({ position , rotation }) {
         console.log('Octree has been successfully cleared.')
         isWorkerBusy.current = false;
         pointsInsertedRef.current = false;
-        //positionAttrRef.current.data.updateRanges.length = 0;
-        //colorAttrRef.current.data.updateRanges.length = 0;
+        
+        positionAttrRef.current.data.updateRanges.length = 0;
+        colorAttrRef.current.data.updateRanges.length = 0;
+        
         positionAttrRef.current.data.needsUpdate = true;
         colorAttrRef.current.data.needsUpdate = true;  
         geometryRef.current.setDrawRange(0, 0);
@@ -103,7 +109,7 @@ function OctreeTest({ position , rotation }) {
       }
 
       else if (type === 'UPDATE_DONE') {
-        /*
+        
         positionAttrRef.current.data.updateRanges.length = 0;
         colorAttrRef.current.data.updateRanges.length = 0;
         positionAttrRef.current.data.updateRanges.push({
@@ -114,7 +120,7 @@ function OctreeTest({ position , rotation }) {
           offset: 0,
           count: payload.vertexCount * 16 
         });
-        */
+        
         positionAttrRef.current.data.needsUpdate = true;
         colorAttrRef.current.data.needsUpdate = true;        
         geometryRef.current.setDrawRange(0, payload.vertexCount);
@@ -134,8 +140,10 @@ function OctreeTest({ position , rotation }) {
           colorAttrRef.current.data.setUsage(THREE.DynamicDrawUsage);      
           pointsInsertedRef.current = true;
         }
-        //positionAttrRef.current.data.updateRanges.length = 0;
-        //colorAttrRef.current.updateRanges.length = 0;
+        /*
+        positionAttrRef.current.data.updateRanges.length = 0;
+        colorAttrRef.current.updateRanges.length = 0;
+        */
         positionAttrRef.current.data.needsUpdate = true;
         colorAttrRef.current.data.needsUpdate = true;
         isWorkerBusy.current = false;  
@@ -160,12 +168,30 @@ function OctreeTest({ position , rotation }) {
       }
     }
 
-    return () => {octreeWorkerRef.current.terminate()}
+  return () => {
+    // Clear the event handler
+    if (octreeWorkerRef.current) {
+      octreeWorkerRef.current.onmessage = null;
+    }
+    
+    // Terminate the worker
+    octreeWorkerRef.current?.terminate();
+    
+    // Dispose THREE.js objects
+    if (geometryRef.current) {
+      geometryRef.current.dispose();
+    }
+    
+    // Clear refs to help GC
+    sharedUint8ViewRef.current = null;
+    positionAttrRef.current = null;
+    colorAttrRef.current = null;
+  }
   }, [])
 
 
   useThrottledFrame((state) => {
-    if (!isLoaded || isWorkerBusy.current) return;
+    if (!isLoaded && !isWorkerBusy.current) return;
 
     isWorkerBusy.current = true;
 
@@ -185,7 +211,7 @@ function OctreeTest({ position , rotation }) {
       type: 'UPDATE',
       payload: cameraData
     });
-  }, 5);
+  }, 3);
 
   return (
     <group position={position} rotation={rotation}>

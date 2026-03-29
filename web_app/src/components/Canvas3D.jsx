@@ -5,6 +5,7 @@ import { AppContext } from './Contexts/Contexts';
 import { Canvas } from '@react-three/fiber'
 import { useState , useContext } from 'react';
 import {  OrbitControls , FirstPersonControls } from '@react-three/drei'
+import { ClipboardManager } from './Helpers/ClipboardManager'
 
 
 let invalidateRef = null
@@ -28,7 +29,9 @@ function Canvas3D() {
     setDeletionSelection, 
     displaySettings, 
     sidebarDisplay, 
-    userHistory
+    userHistory,
+    activeVolumeId, 
+    setActiveVolumeId
   } = useContext(AppContext)
 
   const [orbitEnabled, setOrbitEnabled] = useState(true);
@@ -41,7 +44,10 @@ function Canvas3D() {
           cameraRef = state.camera;
         }}
         camera={{ fov: 75, position: [0, 1.5, 12] }}
+        onPointerMissed={() => setActiveVolumeId(null)}
       >
+
+        <ClipboardManager />
         <BackgroundManager displaySettings={displaySettings}/>
         <gridHelper visible={displaySettings.gridVisible} args={[10]}/>
 
@@ -56,6 +62,9 @@ function Canvas3D() {
               setOrbitControlsEnabled={setOrbitEnabled} 
               showLabel={displaySettings.showLabels}
               userHistory={userHistory}
+              activeVolumeId={activeVolumeId}
+              setActiveVolumeId={setActiveVolumeId}
+              activeColor="#00ff00"
               focusColor="#ffcc00" 
               color="#0088ff"
             />

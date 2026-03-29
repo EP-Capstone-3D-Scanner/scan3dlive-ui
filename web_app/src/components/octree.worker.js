@@ -1,8 +1,8 @@
-import OctreeManager from '../modules/OctreeModuleLabelsTest.js';
+import OctreeManager from '../modules/OctreeModuleMinNodeSizeTest.js';
 
 const BYTES_PER_POINT = 16;
 const FLOATS_PER_POINT = 4;
-let MAX_POINTS = 6000000;
+let MAX_POINTS = 25000000;
 const MEMORY_BYTES = MAX_POINTS * BYTES_PER_POINT;
 
 let OctreeHelper = null;

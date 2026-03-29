@@ -130,9 +130,9 @@ function FormatDisplayMenu() {
                         <Form.Label className="w-50">Point Size: {displaySettings.pointSize}</Form.Label>
                         <Form.Range
                             defaultValue={displaySettings.pointSize}
-                            min={0.01}
+                            min={0.005}
                             max={0.05}
-                            step={0.01}
+                            step={0.005}
                             onChange={(e)=>updateSetting(e, 'pointSize')}
                         />
                     </div>
