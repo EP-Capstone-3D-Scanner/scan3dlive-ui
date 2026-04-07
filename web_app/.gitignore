@@ -26,5 +26,3 @@ public/point_clouds
 *.sw?
 
 #CPP Emscripten ES6 Modules Test
-src/components/OctreeModule.jsx
-src/modules
