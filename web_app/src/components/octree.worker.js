@@ -1,4 +1,4 @@
-import OctreeManager from '../modules/OctreeModuleMinNodeSizeTest.js';
+import OctreeManager from '../modules/OctreeModuleCameraFixTest.js';
 
 const BYTES_PER_POINT = 16;
 const FLOATS_PER_POINT = 4;
@@ -118,7 +118,7 @@ self.onmessage = async (e) => {
     const vertexCount = Math.min(Math.floor(dataBytes / BYTES_PER_POINT), MAX_POINTS);
     console.log(vertexCount) 
     const diff = Math.abs(vertexCount - lastVertexCount);
-    const threshold = lastVertexCount / 25;
+    const threshold = lastVertexCount / 50;
 
     if (doneDeletion || diff > threshold || previousMaxLOD !== maxLOD  || lastVertexCount === 0) {
       const startIndex = (dataNodePtr + 4) >> 2;

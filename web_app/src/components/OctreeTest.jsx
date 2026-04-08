@@ -169,20 +169,16 @@ function OctreeTest({ position , rotation }) {
     }
 
   return () => {
-    // Clear the event handler
     if (octreeWorkerRef.current) {
       octreeWorkerRef.current.onmessage = null;
     }
     
-    // Terminate the worker
     octreeWorkerRef.current?.terminate();
     
-    // Dispose THREE.js objects
     if (geometryRef.current) {
       geometryRef.current.dispose();
     }
     
-    // Clear refs to help GC
     sharedUint8ViewRef.current = null;
     positionAttrRef.current = null;
     colorAttrRef.current = null;
