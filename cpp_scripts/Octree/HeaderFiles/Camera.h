@@ -3,8 +3,7 @@
 #include <array>
 #include <iosfwd> 
 
-/** 
- * @struct Camera
+/** * @struct Camera
  * @brief Camera used for projection world-space geometry  
  * @note There is a glich in R3F that causes camera aspect to not update on re-renders
  * @note I fix this by manually setting the first element of projection matrix based on tan(fov/2)

@@ -255,9 +255,9 @@ void ModifiableNestedOctree<PointT>::insertPoint(const PointT& point) {
         return;
     }
     uint32_t currentNodeId = id;
-    //uint32_t count = 0;
-    while ((MNO[currentNodeId].insertPointInGrid(point) == UINT16_MAX) /*&& count< 2*/) {
-        //count +=1;
+    uint32_t count = 0;
+    while ((MNO[currentNodeId].insertPointInGrid(point) == UINT16_MAX) && /*MNO[currentNodeId].boundingBox.length>0.1*/ count < 12) { // If grid cell is occupied, insert into child node. Add condition to prevent infinite loop in case of precision issues
+        count += 1;
         uint8_t childIndex = MNO[currentNodeId].getPointOctant(point);
         currentNodeId = MNO[currentNodeId].createChild(childIndex);
     }
@@ -406,7 +406,7 @@ void ModifiableNestedOctree<PointT>::expandRoot(const BoundingBox& box) {
     if(MNO.size() == 0) {
         MNO.reserve(25000);
         ModifiableNestedOctree<PointT>::MNO.emplace_back(
-            ModifiableNestedOctree<PointT>::ROOT_ID, UINT16_MAX, PointXYZ(-25, -25, -25), PointXYZ(25, 25, 25)
+            ModifiableNestedOctree<PointT>::ROOT_ID, UINT16_MAX, PointXYZ(-25, -10, -15), PointXYZ(25, 10, 15)
         );
     }
     // Check if current root contains the box, if not, expand root until it does

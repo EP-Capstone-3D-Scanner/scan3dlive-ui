@@ -1,7 +1,4 @@
-#include "MathTypes.h"
 #include "Camera.h"
-#include <array>
-#include <iosfwd> 
 
 /**
  * @struct Camera
@@ -9,15 +6,15 @@
  * */
 
 Camera::Camera(
-    float x_, float y_, float z_, 
+    const float x_, const float y_, const float z_, 
     const Matrix4x4& viewMatrixInverse_,
     const Matrix4x4& projection_,
     float screenWidth_,
     float screenHeight_
 ) : x(x_), y(y_), z(z_), viewMatrixInverse(viewMatrixInverse_), projection(projection_),
     screenWidth(screenWidth_), screenHeight(screenHeight_) {
-        projection[0][0] = 1.30322537284/(screenWidth_ / screenHeight_); // currently assume fov is 75 degrees
-    }
+        projection[0][0] = 1.30322537284 / (screenWidth_ / screenHeight_); // currently assume fov is 75 degrees
+}
 
 void Camera::setPosition(float cx, float cy, float cz) {   
     x = cx;
@@ -72,24 +69,26 @@ void Camera::setProjectionMatrix(
     projection[3][1] = pm42;
     projection[3][2] = pm43;
     projection[3][3] = pm44;
-    projection[0][0] = 1.30322537284/vppr; //correct Three.js glitch
+    projection[0][0] = 1.30322537284 / vppr; //correct Three.js glitch
 }
 
 void Camera::setProjectionViewMatrix() {
-
     projectionViewMatrix = projection * viewMatrixInverse;
     const auto& m = projectionViewMatrix;
 
-    // Extract the 6 frustum planes from the View-Projection matrix.
+    // Extract the 6 frustum planes directly into the class member 'planes'
     // Each plane equation is in the form: Ax + By + Cz + D = 0
-    float planes[6][4] = {
-        { m[3][0] + m[0][0], m[3][1] + m[0][1], m[3][2] + m[0][2], m[3][3] + m[0][3] }, // Left
-        { m[3][0] - m[0][0], m[3][1] - m[0][1], m[3][2] - m[0][2], m[3][3] - m[0][3] }, // Right
-        { m[3][0] + m[1][0], m[3][1] + m[1][1], m[3][2] + m[1][2], m[3][3] + m[1][3] }, // Bottom
-        { m[3][0] - m[1][0], m[3][1] - m[1][1], m[3][2] - m[1][2], m[3][3] - m[1][3] }, // Top
-        { m[3][0] + m[2][0], m[3][1] + m[2][1], m[3][2] + m[2][2], m[3][3] + m[2][3] }, // Near
-        { m[3][0] - m[2][0], m[3][1] - m[2][1], m[3][2] - m[2][2], m[3][3] - m[2][3] }  // Far
-    };
     
+    // Left
+    planes[0][0] = m[3][0] + m[0][0]; planes[0][1] = m[3][1] + m[0][1]; planes[0][2] = m[3][2] + m[0][2]; planes[0][3] = m[3][3] + m[0][3];
+    // Right
+    planes[1][0] = m[3][0] - m[0][0]; planes[1][1] = m[3][1] - m[0][1]; planes[1][2] = m[3][2] - m[0][2]; planes[1][3] = m[3][3] - m[0][3];
+    // Bottom
+    planes[2][0] = m[3][0] + m[1][0]; planes[2][1] = m[3][1] + m[1][1]; planes[2][2] = m[3][2] + m[1][2]; planes[2][3] = m[3][3] + m[1][3];
+    // Top
+    planes[3][0] = m[3][0] - m[1][0]; planes[3][1] = m[3][1] - m[1][1]; planes[3][2] = m[3][2] - m[1][2]; planes[3][3] = m[3][3] - m[1][3];
+    // Near
+    planes[4][0] = m[3][0] + m[2][0]; planes[4][1] = m[3][1] + m[2][1]; planes[4][2] = m[3][2] + m[2][2]; planes[4][3] = m[3][3] + m[2][3];
+    // Far
+    planes[5][0] = m[3][0] - m[2][0]; planes[5][1] = m[3][1] - m[2][1]; planes[5][2] = m[3][2] - m[2][2]; planes[5][3] = m[3][3] - m[2][3];
 }
-
