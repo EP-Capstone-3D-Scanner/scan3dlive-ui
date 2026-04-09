@@ -2,7 +2,7 @@ import OctreeManager from '../modules/OctreeModuleCameraFixTest.js';
 
 const BYTES_PER_POINT = 16;
 const FLOATS_PER_POINT = 4;
-let MAX_POINTS = 25000000;
+let MAX_POINTS = 40000000;
 const MEMORY_BYTES = MAX_POINTS * BYTES_PER_POINT;
 
 let OctreeHelper = null;
@@ -43,8 +43,10 @@ self.onmessage = async (e) => {
       OctreeHelper.HEAPU8.set(new Uint8Array(arrayBuffer), dataPtr);
       MAX_POINTS = OctreeHelper._loadPointsXYZFromBinaryPLY(dataPtr, arrayBuffer.byteLength); // TODO: Update this function to return the number of points
       OctreeHelper._free(dataPtr);
+      const totalPoints = OctreeHelper._getOctreePointCount();
       self.postMessage({ 
         type: 'LOAD_DONE', 
+        payload: { totalPoints }
       });
     } 
     catch (err) {
@@ -62,9 +64,10 @@ self.onmessage = async (e) => {
     const end = performance.now()
     //console.log(`Octree Insertion took ${end-start} milliseconds`)
     console.log(`[WEB WORKER] Octree insertion took ${end-start} milliseconds`)
-    
+    const totalPoints = OctreeHelper._getOctreePointCount();
     self.postMessage({
       type: 'INSERT_DONE',
+      payload: { totalPoints }
     });
   }
 
@@ -167,6 +170,7 @@ self.onmessage = async (e) => {
 
   else if (type === 'SAVE_AS_VOL') {
     console.log(payload)
+    const volumeData = payload
     const position = payload.position;
     const size = payload.size;
     const rot = payload.rotation;
@@ -188,7 +192,8 @@ self.onmessage = async (e) => {
     self.postMessage({ 
       type: 'SAVE_DONE', 
       payload: fileData, 
-      fileName: fileName 
+      fileName: fileName,
+      volumeData:volumeData 
     });
     OctreeHelper._free(dataNodePtr);
   }

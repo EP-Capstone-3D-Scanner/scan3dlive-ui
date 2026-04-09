@@ -43,7 +43,7 @@ const Footer = () => {
                     className="ms-auto d-flex flex-column justify-content-center h-100 footer-button" 
                     variant="dark"
                 >
-                    Last Update: (3 Days Ago)
+                    Point Count: {displaySettings.totalPoints}
                 </Button>
                 
 

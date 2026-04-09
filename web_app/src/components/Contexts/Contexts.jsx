@@ -41,7 +41,8 @@ export const AppProvider = ({children}) => {
         visibleModal: '',
         projectName: 'Untitled-0',
         projectAuthor: '', 
-        description: ''
+        description: '',
+        totalPoints:0
     })
 
     const { websocketRef, connected , reconnect } = useWebSocketClient({

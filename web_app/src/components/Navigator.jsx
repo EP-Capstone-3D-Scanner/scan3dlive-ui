@@ -26,7 +26,9 @@ const Navigator = () => {
         cutSelection,  
         pasteSelection,
         activeVolumeId, 
-        clipboardData 
+        clipboardData,
+        volumeSelections,     
+        setVolumeSelections, 
     } = useContext(AppContext)
 
     const sendWSMessage = useCallback((action) => {
@@ -36,16 +38,67 @@ const Navigator = () => {
         }
     }, [websocketRef]);
 
-    const handleFileLoad = (e) => {
+    const handleFileLoad = async (e) => {
         const file = e.target.files[0];
-        if(file) {
+        if (!file) return;
+
+        const fileName = file.name.toLowerCase();
+
+        // --- Handle .ply Files ---
+        if (fileName.endsWith('.ply')) {
             octreeWorkerRef.current.postMessage({ 
                 type: 'LOAD', 
                 payload: { file } 
-            })
+            });
+        } 
+        
+        // --- Handle .json Files ---
+        else if (fileName.endsWith('.json')) {
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+                
+                // 1. Normalize the data into an array of objects
+                let newItems = [];
+                if (data.position || data.name) {
+                    // It's a single object format
+                    newItems = [data];
+                } else {
+                    // It's an object-of-objects format
+                    newItems = Object.values(data);
+                }
+
+                // 2. Calculate the starting ID
+                const existingIds = Object.keys(volumeSelections).map(Number);
+                let nextId = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 0;
+
+                // 3. Build the update object
+                const selectionsToAppend = {};
+                newItems.forEach((item) => {
+                    selectionsToAppend[nextId] = {
+                        name: item.name || `Imported-${nextId}`,
+                        position: item.position || [0, 0, 0],
+                        rotation: item.rotation || [0, 0, 0],
+                        size: item.size || [1, 1, 1],
+                        notes: item.notes || ""
+                    };
+                    nextId++;
+                });
+
+                // 4. Update state
+                setVolumeSelections(prev => ({
+                    ...prev,
+                    ...selectionsToAppend
+                }));
+
+            } catch (err) {
+                console.error("Failed to parse volume selection JSON:", err);
+            }
         }
+
+        // Reset input so the same file can be loaded twice if needed
         e.target.value = null;
-    }
+    };
 
     const handleFormat = () => {
         setSidebarDisplay(
@@ -135,7 +188,7 @@ const Navigator = () => {
                                 id="file-upload" 
                                 type="file" 
                                 onChange={handleFileLoad} 
-                                accept=".ply" 
+                                accept=".ply,.json" 
                                 style={HIDDEN_INPUT_STYLE} 
                             />
                         </NavDropdown.Item>
@@ -168,7 +221,6 @@ const Navigator = () => {
                         <NavDropdown.Item onClick={() => toggleSetting('showLabels')}>Labels</NavDropdown.Item>
                         <NavDropdown.Item onClick={toggleFullscreen}>Fullscreen</NavDropdown.Item>
                         <NavDropdown.Divider/>
-                        <NavDropdown.Item>Appearance</NavDropdown.Item>
                     </NavDropdown>
 
                     <NavDropdown title="Network" className="h-100 d-flex align-items-center">

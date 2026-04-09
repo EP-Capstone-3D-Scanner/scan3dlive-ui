@@ -12,8 +12,10 @@ function OctreeTest({ position , rotation }) {
   const { 
     websocketRef, 
     octreeWorkerRef, 
-    displaySettings, 
-    isWorkerBusy
+    displaySettings,
+    setDisplaySettings, 
+    isWorkerBusy,
+    volumeSelections
   } = useContext(AppContext)
 
   const { invalidate } = useThree()
@@ -23,6 +25,11 @@ function OctreeTest({ position , rotation }) {
   const colorAttrRef = useRef(null)
   const sharedUint8ViewRef = useRef(null);
   const pointsInsertedRef = useRef(false);
+  const volumeSelectionsRef = useRef(volumeSelections);
+
+  useEffect(() => {
+    volumeSelectionsRef.current = volumeSelections;
+  }, [volumeSelections]);
 
   useEffect(() => {
     console.log('effect ran')
@@ -30,7 +37,7 @@ function OctreeTest({ position , rotation }) {
     octreeWorkerRef.current = new OctreeWorker()
       
     octreeWorkerRef.current.onmessage = (e) => {
-      const { type, payload , fileName } = e.data;
+      const { type, payload , fileName, volumeData} = e.data;
 
       if (type === 'READY') {
         octreeWorkerRef.current.postMessage({ type: 'INIT', payload: {} })
@@ -59,7 +66,7 @@ function OctreeTest({ position , rotation }) {
         
         positionAttrRef.current.data.updateRanges.length = 0;
         colorAttrRef.current.data.updateRanges.length = 0;
-        
+        setDisplaySettings(prev => ({ ...prev, totalPoints: payload.totalPoints }))
         positionAttrRef.current.data.needsUpdate = true;
         colorAttrRef.current.data.needsUpdate = true;
         isWorkerBusy.current = false;  
@@ -76,6 +83,7 @@ function OctreeTest({ position , rotation }) {
           setIsLoaded(true)
         }
         isWorkerBusy.current = false; 
+        setDisplaySettings(prev => ({ ...prev, totalPoints: payload.totalPoints }))
         // Send an ACK back to the server requesting the points to insert
         if (websocketRef.current && websocketRef.current.readyState === WebSocket.OPEN) {
             websocketRef.current.send(JSON.stringify({ type: 'ACK' }));
@@ -101,7 +109,7 @@ function OctreeTest({ position , rotation }) {
         
         positionAttrRef.current.data.updateRanges.length = 0;
         colorAttrRef.current.data.updateRanges.length = 0;
-        
+        setDisplaySettings(prev => ({ ...prev, totalPoints: 0 }))
         positionAttrRef.current.data.needsUpdate = true;
         colorAttrRef.current.data.needsUpdate = true;  
         geometryRef.current.setDrawRange(0, 0);
@@ -152,18 +160,40 @@ function OctreeTest({ position , rotation }) {
 
       else if (type === 'SAVE_DONE') {
           const fileData = payload;
-          const blob = new Blob([fileData], { type: 'application/octet-stream' });
-          
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = (fileName || 'download') + '.ply'; 
-          
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
+          const baseName = fileName || 'download';
 
-          URL.revokeObjectURL(url);
+          // --- 1. Save the primary .ply file ---
+          const plyBlob = new Blob([fileData], { type: 'application/octet-stream' });
+          const plyUrl = URL.createObjectURL(plyBlob);
+          const plyLink = document.createElement('a');
+          plyLink.href = plyUrl;
+          plyLink.download = `${baseName}.ply`;
+          document.body.appendChild(plyLink);
+          plyLink.click();
+          document.body.removeChild(plyLink);
+          URL.revokeObjectURL(plyUrl);
+
+          // --- 2. Save the JSON metadata ---
+          // Determine which object to save
+          const dataToSave = (typeof volumeData !== 'undefined' && volumeData !== null) 
+              ? volumeData 
+              : volumeSelectionsRef.current;
+          if (dataToSave) {
+              const jsonString = JSON.stringify(dataToSave, null, 2);
+              const jsonBlob = new Blob([jsonString], { type: 'application/json' });
+              const jsonUrl = URL.createObjectURL(jsonBlob);
+              
+              const jsonLink = document.createElement('a');
+              jsonLink.href = jsonUrl;
+              // Uses the same base name but with .json extension
+              jsonLink.download = `${baseName}.json`; 
+              
+              document.body.appendChild(jsonLink);
+              jsonLink.click();
+              document.body.removeChild(jsonLink);
+              URL.revokeObjectURL(jsonUrl);
+          }
+
           isWorkerBusy.current = false;
       }
     }

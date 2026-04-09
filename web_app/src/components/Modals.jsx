@@ -270,7 +270,10 @@ export function SaveAsModal() {
         }));
     };
 
-    const handleSaveAs = () => {
+    const handleSaveAs = (e) => {
+        if (e && e.preventDefault) {
+            e.preventDefault();
+        }
         console.log("Saving with settings:", saveAsSettings);
         if (octreeWorkerRef) {
             isWorkerBusy.current = true;
